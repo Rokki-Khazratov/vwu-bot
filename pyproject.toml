@@ -17,6 +17,7 @@ dependencies = [
     "jsonschema>=4.22",
     "sqladmin>=0.18",
     "itsdangerous>=2.1",
+    "celery[redis]>=5.4",
 ]
 
 [project.optional-dependencies]

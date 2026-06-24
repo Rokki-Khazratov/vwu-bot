@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-pro"
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
 
+    # Async workers (Celery + Redis)
+    redis_url: str = "redis://localhost:6379/0"
+    eval_async: bool = False  # when true, /attempts returns 202 + poll
+    generation_async: bool = False
+    celery_eager: bool = False  # run tasks inline (tests)
+
     # Dictionary providers
     pons_api_key: str = ""
     pons_base_url: str = "https://api.pons.com"

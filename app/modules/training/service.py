@@ -120,6 +120,25 @@ async def get_session_with_task(
     return session, task
 
 
+async def expire_due_sessions(db: AsyncSession) -> int:
+    """Mark active sessions past their deadline as expired (ТЗ §31). Returns count."""
+    from sqlalchemy import select
+
+    from app.modules.training.models import TrainingSession
+
+    rows = (await db.execute(
+        select(TrainingSession).where(
+            TrainingSession.status.in_(["created", "started", "in_progress"]),
+            TrainingSession.expires_at.is_not(None),
+            TrainingSession.expires_at < _now(),
+        )
+    )).scalars().all()
+    for session in rows:
+        session.status = "expired"
+    await db.flush()
+    return len(rows)
+
+
 async def finalize_session(
     db: AsyncSession, session: TrainingSession, *, score_earned: float, score_max: float
 ) -> None:
