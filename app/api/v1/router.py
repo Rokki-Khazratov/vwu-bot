@@ -10,12 +10,14 @@ from app.api.v1.access import router as access_router
 from app.api.v1.attempts import router as attempts_router
 from app.api.v1.catalog import router as catalog_router
 from app.api.v1.sessions import router as sessions_router
+from app.api.v1.statistics import router as statistics_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(access_router)
 api_v1_router.include_router(catalog_router)
 api_v1_router.include_router(sessions_router)
 api_v1_router.include_router(attempts_router)
+api_v1_router.include_router(statistics_router)
 api_v1_router.include_router(admin_tasks_router)
 api_v1_router.include_router(admin_attempts_router)
 api_v1_router.include_router(admin_observability_router)
