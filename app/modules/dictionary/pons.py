@@ -8,6 +8,7 @@ so the lookup degrades gracefully (ТЗ §21.4: stale/partial beats total failur
 
 from __future__ import annotations
 
+import html
 import re
 
 import httpx
@@ -24,11 +25,23 @@ _DICT_CODES = {
     ("en", "de"): "deen",
 }
 
+# Source markers that indicate an idiom / example rather than a headword translation.
+_EXAMPLE_MARKERS = ("idiom_proverb", "example", "collocator", "rhetoric")
+
+_SPAN_BLOCK_RE = re.compile(r"<span[^>]*>.*?</span>", re.DOTALL)
 _TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE = re.compile(r"\s+")
 
 
-def _strip(text: str) -> str:
-    return _TAG_RE.sub("", text or "").strip()
+def _clean(text: str) -> str:
+    """Strip grammar spans (genus, etc.) and remaining markup; unescape entities."""
+    text = _SPAN_BLOCK_RE.sub("", text or "")
+    text = _TAG_RE.sub("", text)
+    return _WS_RE.sub(" ", html.unescape(text)).strip()
+
+
+def _is_example(source_raw: str) -> bool:
+    return any(marker in source_raw for marker in _EXAMPLE_MARKERS)
 
 
 class PonsProvider(DictionaryProvider):
@@ -72,15 +85,20 @@ class PonsProvider(DictionaryProvider):
             for hit in lang_block.get("hits", []):
                 for rom in hit.get("roms", []):
                     if not result.lemma:
-                        result.lemma = _strip(rom.get("headword", "")) or None
+                        result.lemma = _clean(rom.get("headword", "")) or None
                     if not result.part_of_speech:
                         result.part_of_speech = rom.get("wordclass")
                     for arab in rom.get("arabs", []):
                         for tr in arab.get("translations", []):
-                            target = _strip(tr.get("target", ""))
-                            if target:
+                            target = _clean(tr.get("target", ""))
+                            if not target:
+                                continue
+                            if _is_example(tr.get("source", "")):
+                                result.examples.append(target)
+                            else:
                                 result.translations.append(target)
 
         result.translations = list(dict.fromkeys(result.translations))
+        result.examples = list(dict.fromkeys(result.examples))
         result.found = bool(result.translations)
         return result

@@ -36,9 +36,10 @@ def merge_results(
     phonetics: list[str] = []
     audio_urls: list[str] = []
     synonyms: list[str] = []
+    # Examples come from both PONS (idioms) and Free Dictionary.
+    examples = _dedupe((pons.examples if pons else []) + (free.examples if free else []))
     if free:
         definitions = free.definitions
-        examples = _dedupe(free.examples)
         phonetics = _dedupe(free.phonetics)
         audio_urls = _dedupe(free.audio_urls)
         synonyms = _dedupe(free.synonyms)
