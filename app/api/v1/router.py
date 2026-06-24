@@ -2,6 +2,8 @@
 
 from fastapi import APIRouter
 
+from app.admin.attempts import router as admin_attempts_router
+from app.admin.observability import router as admin_observability_router
 from app.admin.tasks import router as admin_tasks_router
 from app.api.v1.access import router as access_router
 from app.api.v1.attempts import router as attempts_router
@@ -14,3 +16,5 @@ api_v1_router.include_router(catalog_router)
 api_v1_router.include_router(sessions_router)
 api_v1_router.include_router(attempts_router)
 api_v1_router.include_router(admin_tasks_router)
+api_v1_router.include_router(admin_attempts_router)
+api_v1_router.include_router(admin_observability_router)
