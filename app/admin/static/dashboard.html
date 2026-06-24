@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VWU — Calibration</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --line:#262b36; --fg:#e6e8ee; --muted:#8b93a7;
+          --acc:#4f8cff; --ok:#33c08d; --warn:#e0a23b; --bad:#e5564e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { display:flex; gap:12px; align-items:center; padding:10px 16px;
+           background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; }
+  header h1 { font-size:15px; margin:0; font-weight:600; }
+  header .grow { flex:1; }
+  input, textarea, select, button { font:inherit; color:var(--fg); background:#0d0f14;
+           border:1px solid var(--line); border-radius:7px; padding:6px 9px; }
+  button { background:var(--acc); border:none; cursor:pointer; font-weight:600; }
+  button.sec { background:#222836; }
+  button.bad { background:var(--bad); }
+  button.ok { background:var(--ok); }
+  button:hover { filter:brightness(1.08); }
+  nav { display:flex; gap:6px; padding:10px 16px 0; }
+  nav button { background:#222836; }
+  nav button.active { background:var(--acc); }
+  main { display:grid; grid-template-columns:minmax(280px,420px) 1fr; gap:14px; padding:14px 16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); font-size:13px; }
+  tr.row { cursor:pointer; } tr.row:hover { background:#1d212b; }
+  .muted { color:var(--muted); } .pill { padding:1px 7px; border-radius:20px; font-size:12px; }
+  .s-evaluated,.s-succeeded,.s-active { background:#16361f; color:var(--ok); }
+  .s-failed,.s-dead,.s-rejected { background:#3a1d1b; color:var(--bad); }
+  .s-evaluating,.s-queued,.s-running,.s-generated { background:#36301a; color:var(--warn); }
+  .answer { white-space:pre-wrap; background:#0d0f14; border:1px solid var(--line);
+            border-radius:8px; padding:10px; max-height:240px; overflow:auto; }
+  .crit { display:flex; align-items:center; gap:8px; margin:4px 0; }
+  .crit input { width:60px; } .crit .name { flex:1; }
+  .hidden { display:none; } h3 { margin:4px 0 10px; font-size:14px; }
+  .row-actions { display:flex; gap:6px; flex-wrap:wrap; }
+  .err { border-left:3px solid var(--bad); padding:4px 8px; margin:6px 0; background:#0d0f14; }
+  #toast { position:fixed; bottom:16px; right:16px; background:#222836; border:1px solid var(--line);
+           padding:10px 14px; border-radius:8px; opacity:0; transition:.2s; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎓 VWU Calibration</h1>
+  <span class="grow"></span>
+  <span class="muted">admin tg-id</span>
+  <input id="tgid" style="width:130px" placeholder="telegram id" />
+  <button class="sec" onclick="saveId()">OK</button>
+</header>
+<nav>
+  <button data-tab="attempts" class="active" onclick="tab('attempts')">📝 Attempts</button>
+  <button data-tab="generate" onclick="tab('generate')">⚙️ Generate</button>
+  <button data-tab="jobs" onclick="tab('jobs')">🛠 Jobs</button>
+  <button data-tab="llm" onclick="tab('llm')">🤖 LLM calls</button>
+</nav>
+
+<main id="tab-attempts">
+  <div class="card">
+    <h3>Attempts <button class="sec" style="float:right" onclick="loadAttempts()">↻</button></h3>
+    <table><thead><tr><th>id</th><th>status</th><th>score</th><th>words</th></tr></thead>
+      <tbody id="attempts-body"></tbody></table>
+  </div>
+  <div class="card" id="detail"><span class="muted">Выбери attempt слева.</span></div>
+</main>
+
+<main id="tab-generate" class="hidden">
+  <div class="card">
+    <h3>Generate tasks</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="bp" value="epe_b1_plus_blog_comment_v1" style="flex:1;min-width:220px" />
+      <input id="count" type="number" value="1" min="1" max="20" style="width:80px" />
+      <button onclick="generate()">Generate</button>
+    </div>
+    <div id="gen-result" style="margin-top:10px"></div>
+  </div>
+  <div class="card"><span class="muted">Сгенерированные задания появятся слева; активируй нужные.</span></div>
+</main>
+
+<main id="tab-jobs" class="hidden">
+  <div class="card" style="grid-column:1/-1">
+    <h3>Background jobs <button class="sec" style="float:right" onclick="loadJobs()">↻</button></h3>
+    <table><thead><tr><th>kind</th><th>status</th><th>ref</th><th>attempts</th><th>error</th><th>created</th></tr></thead>
+      <tbody id="jobs-body"></tbody></table>
+  </div>
+</main>
+
+<main id="tab-llm" class="hidden">
+  <div class="card" style="grid-column:1/-1">
+    <h3>LLM calls <button class="sec" style="float:right" onclick="loadLlm()">↻</button></h3>
+    <table><thead><tr><th>purpose</th><th>model</th><th>status</th><th>in/out</th><th>ms</th><th>created</th></tr></thead>
+      <tbody id="llm-body"></tbody></table>
+  </div>
+</main>
+
+<div id="toast"></div>
+<script>
+const API = "/api/v1";
+let TGID = localStorage.getItem("vwu_tgid") || "{{DEFAULT_TELEGRAM_ID}}";
+document.getElementById("tgid").value = TGID;
+
+function saveId(){ TGID = document.getElementById("tgid").value.trim();
+  localStorage.setItem("vwu_tgid", TGID); toast("tg-id сохранён"); refresh(); }
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m;
+  t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+function pill(s){ return `<span class="pill s-${s}">${s}</span>`; }
+function short(id){ return (id||"").slice(0,8); }
+
+async function api(path, opts={}){
+  const headers = {"X-Telegram-User-Id": TGID, "Content-Type":"application/json", ...(opts.headers||{})};
+  if (opts.method && opts.method!=="GET") headers["Idempotency-Key"] = crypto.randomUUID();
+  const r = await fetch(API+path, {...opts, headers});
+  const body = await r.json().catch(()=>({}));
+  if (!r.ok) { const e=(body.errors&&body.errors[0])||{}; throw new Error(e.code||r.status); }
+  return body.data;
+}
+
+function tab(name){
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  ["attempts","generate","jobs","llm"].forEach(t=>
+    document.getElementById("tab-"+t).classList.toggle("hidden", t!==name));
+  if(name==="attempts") loadAttempts();
+  if(name==="jobs") loadJobs(); if(name==="llm") loadLlm();
+}
+
+async function loadAttempts(){
+  try{
+    const rows = await api("/admin/attempts");
+    document.getElementById("attempts-body").innerHTML = rows.map(a=>`
+      <tr class="row" onclick="openAttempt('${a.id}')">
+        <td>${short(a.id)}</td><td>${pill(a.status)}</td>
+        <td>${a.score_final??"—"}/${a.score_max??"—"}</td><td>${a.word_count??"—"}</td></tr>`).join("")
+      || `<tr><td colspan=4 class=muted>пусто</td></tr>`;
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+async function openAttempt(id){
+  try{
+    const a = await api("/admin/attempts/"+id);
+    const crit = (a.criteria||[]).map(c=>`
+      <div class="crit"><span class="name">${c.code}</span>
+        <input type="number" min="0" max="${c.max_score||5}" value="${c.score}" id="c_${c.code}"/>
+        <span class="muted">/${c.max_score||5}</span></div>`).join("");
+    const errs = (a.errors||[]).map(e=>`<div class="err"><b>${e.category}</b>
+        <span class="muted">(${e.severity||""})</span><br>
+        <s>${esc(e.source_fragment||"")}</s> → <b>${esc(e.corrected_fragment||"")}</b><br>
+        <span class="muted">${esc(e.explanation||"")}</span></div>`).join("") || "<span class=muted>—</span>";
+    document.getElementById("detail").innerHTML = `
+      <h3>${esc(a.task_title||"Attempt")} ${pill(a.status||"")}</h3>
+      <div class="muted">final ${a.score?.final??"—"} / ${a.score?.max??"—"} · raw ${a.score?.raw??"—"} · words ${a.word_count??"—"}</div>
+      <p class="muted" style="margin:8px 0 4px">Ответ ученика:</p>
+      <div class="answer">${esc(a.answer_text||"(нет текста)")}</div>
+      <h3 style="margin-top:14px">Критерии (правка)</h3>${crit}
+      <input id="score_reason" placeholder="причина коррекции" style="width:100%;margin:6px 0"/>
+      <div class="row-actions">
+        <button class="ok" onclick="saveScore('${id}')">💾 Сохранить баллы</button>
+      </div>
+      <h3 style="margin-top:14px">Рекомендации (правка)</h3>
+      <textarea id="recs" style="width:100%;height:70px">${(a.recommendations||[]).join("\\n")}</textarea>
+      <div class="row-actions" style="margin-top:6px">
+        <button class="sec" onclick="saveFeedback('${id}')">💬 Сохранить фидбэк</button>
+      </div>
+      <h3 style="margin-top:14px">Ошибки</h3>${errs}`;
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+async function saveScore(id){
+  const criteria = {}; document.querySelectorAll('[id^="c_"]').forEach(i=>
+    criteria[i.id.slice(2)] = parseInt(i.value,10));
+  const reason = document.getElementById("score_reason").value;
+  try{ await api("/admin/attempts/"+id+"/score", {method:"PATCH",
+        body:JSON.stringify({criteria, reason})});
+    toast("Баллы сохранены"); openAttempt(id); loadAttempts();
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+async function saveFeedback(id){
+  const recs = document.getElementById("recs").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  try{ await api("/admin/attempts/"+id+"/feedback", {method:"PATCH",
+        body:JSON.stringify({recommendations:recs, reason:"dashboard"})});
+    toast("Фидбэк сохранён");
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+async function generate(){
+  const blueprint_code = document.getElementById("bp").value.trim();
+  const count = parseInt(document.getElementById("count").value,10);
+  const box = document.getElementById("gen-result");
+  box.innerHTML = "⏳…";
+  try{
+    const data = await api("/admin/tasks/batch-generate", {method:"POST",
+      body:JSON.stringify({blueprint_code, count})});
+    if (Array.isArray(data)) {
+      box.innerHTML = data.map(t=>`<div class="err" style="border-color:var(--warn)">
+        <b>${esc(t.title)}</b> ${pill(t.status)}<br>
+        <div class="row-actions" style="margin-top:6px">
+          <button class="ok" onclick="setStatus('${t.id}','activate')">✅ Activate</button>
+          <button class="bad" onclick="setStatus('${t.id}','reject')">🚫 Reject</button>
+        </div></div>`).join("") || "<span class=muted>дубликаты пропущены</span>";
+    } else { box.innerHTML = `Задача в очереди: ${JSON.stringify(data)}`; }
+  }catch(e){ box.innerHTML = "Ошибка: "+e.message; }
+}
+
+async function setStatus(id, action){
+  try{ await api("/admin/tasks/"+id+"/"+action, {method:"POST"});
+    toast(action+" ок"); generate();
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+async function loadJobs(){
+  try{ const rows = await api("/admin/jobs");
+    document.getElementById("jobs-body").innerHTML = rows.map(j=>`<tr>
+      <td>${j.kind}</td><td>${pill(j.status)}</td><td>${short(j.ref_id)}</td>
+      <td>${j.attempts}</td><td class="muted">${esc(j.error||"")}</td>
+      <td class="muted">${(j.created_at||"").slice(0,19)}</td></tr>`).join("")
+      || `<tr><td colspan=6 class=muted>пусто</td></tr>`;
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+async function loadLlm(){
+  try{ const rows = await api("/admin/llm-calls");
+    document.getElementById("llm-body").innerHTML = rows.map(c=>`<tr>
+      <td>${c.purpose}</td><td>${c.model}</td><td>${pill(c.status)}</td>
+      <td>${c.input_tokens??"—"}/${c.output_tokens??"—"}</td><td>${c.latency_ms??"—"}</td>
+      <td class="muted">${(c.created_at||"").slice(0,19)}</td></tr>`).join("")
+      || `<tr><td colspan=6 class=muted>пусто</td></tr>`;
+  }catch(e){ toast("Ошибка: "+e.message); }
+}
+
+function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function refresh(){ loadAttempts(); }
+loadAttempts();
+</script>
+</body>
+</html>

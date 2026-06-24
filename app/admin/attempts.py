@@ -49,10 +49,20 @@ async def get_attempt_detail(
     attempt = await eval_repo.get_attempt(db, attempt_id)
     if attempt is None:
         raise AttemptNotFound()
+    # Enrich with the candidate text + task title for the calibration dashboard.
+    from app.modules.tasks import repository as task_repo
+
+    task = await task_repo.get_task(db, attempt.task_id)
+    extra = {
+        "answer_text": attempt.normalized_answer,
+        "word_count": attempt.word_count,
+        "task_title": task.title if task else None,
+    }
     result = await eval_repo.get_result_for_attempt(db, attempt.id)
     if result is None:
-        return {"attempt_id": str(attempt.id), "status": attempt.status}
-    return await build_attempt_payload(db, attempt, result)
+        return {"attempt_id": str(attempt.id), "status": attempt.status, **extra}
+    payload = await build_attempt_payload(db, attempt, result)
+    return {**payload, **extra}
 
 
 @router.patch("/{attempt_id}/score")
