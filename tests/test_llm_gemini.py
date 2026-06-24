@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from app.core.exceptions import LLMSchemaInvalid
-from app.modules.llm.gemini import GeminiProvider
+from app.modules.llm.gemini import GeminiProvider, to_gemini_schema
 from app.modules.llm.provider import LLMRequest
 
 SCHEMA = {
@@ -23,6 +23,33 @@ def _gemini_response(obj: dict) -> httpx.Response:
             "usageMetadata": {"promptTokenCount": 10, "candidatesTokenCount": 5},
         },
     )
+
+
+def test_to_gemini_schema_strips_unsupported_keys():
+    converted = to_gemini_schema(SCHEMA)
+    # supported keys kept
+    assert converted["type"] == "object"
+    assert "score" in converted["properties"]
+    assert converted["properties"]["score"]["type"] == "integer"
+    assert converted["required"] == ["score"]
+    # unsupported keys dropped (Gemini responseSchema subset)
+    assert "additionalProperties" not in converted
+
+
+async def test_request_includes_response_schema():
+    captured = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(req.content)
+        return _gemini_response({"score": 4})
+
+    provider = GeminiProvider(api_key="x", transport=httpx.MockTransport(handler))
+    await provider.generate_structured(
+        LLMRequest(purpose="t", system_prompt="s", user_prompt="u", output_schema=SCHEMA)
+    )
+    gen_cfg = captured["body"]["generationConfig"]
+    assert gen_cfg["responseMimeType"] == "application/json"
+    assert gen_cfg["responseSchema"]["type"] == "object"
 
 
 async def test_valid_output_returns_data():
