@@ -216,3 +216,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local AI assistant instructions
+CLAUDE.md
+AGENTS.local.md
+
+# Local editor / OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Local logs and runtime data
+logs/
+*.log
+*.sqlite
+*.sqlite3
+
+# Bot/API secrets and local config
+.env.*
+!.env.example
+config.local.*

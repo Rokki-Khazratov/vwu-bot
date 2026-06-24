@@ -1,2 +1,2 @@
 # vwu-bot
-This is telegram bot with AI and dict API which hepls to prepare to VWU exams
+This is a Telegram bot with AI and dictionary API support that helps students prepare for VWU exams.
