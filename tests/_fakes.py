@@ -4,7 +4,21 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.modules.dictionary.provider import DictionaryProvider, ProviderDictionaryResult
 from app.modules.llm.provider import LLMProvider, LLMRequest, StructuredLLMResult
+
+
+class FakeDictProvider(DictionaryProvider):
+    """Returns a canned ProviderDictionaryResult and counts lookups."""
+
+    def __init__(self, name: str, result: ProviderDictionaryResult | None = None) -> None:
+        self.name = name
+        self.result = result or ProviderDictionaryResult(provider=name)
+        self.calls = 0
+
+    async def lookup(self, word, source_lang, target_lang) -> ProviderDictionaryResult:
+        self.calls += 1
+        return self.result
 
 
 class FakeProvider(LLMProvider):

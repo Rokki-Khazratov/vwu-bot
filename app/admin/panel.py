@@ -24,6 +24,7 @@ from app.modules.catalog.models import (
     TaskBlueprint,
     TaskFamily,
 )
+from app.modules.dictionary.models import DictionaryEntry
 from app.modules.evaluation.models import (
     Attempt,
     DependencyRule,
@@ -38,6 +39,7 @@ from app.modules.evaluation.models import (
     RubricCriterion,
     ScoreCorrection,
 )
+from app.modules.flashcards.models import FlashcardReview, UserWord
 from app.modules.llm.models import LLMCall
 from app.modules.system.models import AuditLog
 from app.modules.tasks.models import TaskInstance
@@ -197,13 +199,33 @@ class UserAdmin(ModelView, model=User):
     column_list = [User.telegram_id, User.username, User.status, User.last_seen_at]
 
 
+# --- Vocabulary ---
+class DictionaryEntryAdmin(ModelView, model=DictionaryEntry):
+    category = "Vocabulary"
+    column_list = [DictionaryEntry.normalized_word, DictionaryEntry.source_language,
+                   DictionaryEntry.target_language, DictionaryEntry.fetched_at]
+    column_searchable_list = [DictionaryEntry.normalized_word]
+
+
+class UserWordAdmin(ModelView, model=UserWord):
+    category = "Vocabulary"
+    column_list = [UserWord.id, UserWord.knowledge_level, UserWord.interval_days,
+                   UserWord.next_review_at, UserWord.created_at]
+
+
+class FlashcardReviewAdmin(ModelView, model=FlashcardReview):
+    category = "Vocabulary"
+    column_list = [FlashcardReview.grade, FlashcardReview.interval_days,
+                   FlashcardReview.reviewed_at]
+
+
 _VIEWS = [
     SubjectAdmin, ExamProfileAdmin, SkillAdmin, TaskFamilyAdmin, TaskBlueprintAdmin,
     GuidelineAdmin, RubricAdmin, RubricCriterionAdmin, PerformanceBandAdmin,
     PenaltyRuleAdmin, DependencyRuleAdmin, EvaluationProfileAdmin, PromptTemplateAdmin,
     OutputSchemaAdmin, ErrorTaxonomyAdmin, TaskInstanceAdmin, TrainingSessionAdmin,
     AttemptAdmin, EvaluationResultAdmin, ScoreCorrectionAdmin, LLMCallAdmin,
-    AuditLogAdmin, UserAdmin,
+    AuditLogAdmin, UserAdmin, DictionaryEntryAdmin, UserWordAdmin, FlashcardReviewAdmin,
 ]
 
 
