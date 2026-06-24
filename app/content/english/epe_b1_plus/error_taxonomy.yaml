@@ -1,0 +1,25 @@
+# Error taxonomy for the English profile (Writing §19).
+code: english_writing_taxonomy_v1
+name: English Writing Error Taxonomy
+version: v1
+subject_code: english
+categories:
+  - {code: task_type, name: Task type}
+  - {code: content_point, name: Content point}
+  - {code: argumentation, name: Argumentation}
+  - {code: organisation, name: Organisation}
+  - {code: cohesion, name: Cohesion}
+  - {code: grammar, name: Grammar}
+  - {code: word_order, name: Word order}
+  - {code: verb_form, name: Verb form}
+  - {code: tense, name: Tense}
+  - {code: article, name: Article}
+  - {code: preposition, name: Preposition}
+  - {code: vocabulary, name: Vocabulary}
+  - {code: collocation, name: Collocation}
+  - {code: spelling, name: Spelling}
+  - {code: punctuation, name: Punctuation}
+  - {code: register, name: Register}
+  - {code: repetition, name: Repetition}
+  - {code: prompt_lifting, name: Prompt lifting}
+severity_levels: [minor, major, critical]

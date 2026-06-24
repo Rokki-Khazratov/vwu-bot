@@ -1,0 +1,126 @@
+# EPE B1+ writing rubric (Writing §6–12).
+# WARNING: band descriptors and the word-count penalty table are PLACEHOLDERS
+# reconstructed from WRITING_ENGINE_ENGLISH_EXAMPLE.md. They MUST be verified
+# against the owner's original "B1+ VWU ASSESSMENT SCALE" PDF before production.
+code: epe_b1_plus_writing_20_v1
+name: EPE B1+ Writing (20 pts)
+version: v1
+max_score: 20
+description: Four criteria scored 0–5 each; total 20.
+
+criteria:
+  - code: task_achievement
+    name: Task Achievement
+    position: 1
+    min_score: 0
+    max_score: 5
+    weight: 1.0
+    bands:
+      - score: 5
+        descriptor: >
+          Blog text type successfully applied; all three content points sufficiently
+          developed with supporting details; position effective, relevant and convincing.
+      - score: 4
+        descriptor: >
+          Blog format clearly observed; all content points developed with supporting
+          details; position clear and relevant.
+      - score: 3
+        descriptor: >
+          Requirements broadly met; all three content points touched but not all
+          sufficiently developed (or two fully developed); position understandable and
+          linked to the source post.
+      - score: 2
+        descriptor: >
+          Blog requirements only partly met; only two content points covered or support
+          insufficiently relevant; position at times unconvincing, vague or off-topic.
+      - score: 1
+        descriptor: >
+          Important blog-comment features missing; one or no content point developed;
+          position hard to follow, too general or irrelevant; format omissions possible.
+      - score: 0
+        descriptor: >
+          Response does not address the task; language insufficient to assess; text below
+          the hard minimum.
+  - code: organisation_coherence
+    name: Organisation and Coherence
+    position: 2
+    min_score: 0
+    max_score: 5
+    weight: 1.0
+    bands:
+      - score: 5
+        descriptor: Very clear overall coherence; successful logical links; confident use of linking/reference devices.
+      - score: 4
+        descriptor: Clear coherence; ideas connected; linking devices used successfully.
+      - score: 3
+        descriptor: Sufficient coherence; attempts to link ideas visible; some transitions unclear; devices broadly understandable.
+      - score: 2
+        descriptor: Links often unclear; limited range of devices; insufficient paraphrasing; weak structure.
+      - score: 1
+        descriptor: Ideas almost randomly ordered; few or no effective links; paragraphing does not work.
+      - score: 0
+        descriptor: Text shows no organisation.
+  - code: range_vocabulary_grammar
+    name: Range — Vocabulary & Grammar
+    position: 3
+    min_score: 0
+    max_score: 5
+    weight: 1.0
+    bands:
+      - score: 5
+        descriptor: Very good range of vocabulary and grammar; no noticeable expression limits.
+      - score: 4
+        descriptor: Good range; almost no noticeable expression limits.
+      - score: 3
+        descriptor: Sufficient range; limits sometimes noticeable; awkward expressions and repetitions possible.
+      - score: 2
+        descriptor: Insufficient range; language too simple; many expression limits.
+      - score: 1
+        descriptor: Very primitive language; often unable to express ideas clearly; much repetition and prompt lifting.
+      - score: 0
+        descriptor: No assessable lexical/structural range.
+  - code: accuracy_vocabulary_grammar
+    name: Accuracy — Vocabulary & Grammar
+    position: 4
+    min_score: 0
+    max_score: 5
+    weight: 1.0
+    bands:
+      - score: 5
+        descriptor: Very good control; errors do not impede understanding.
+      - score: 4
+        descriptor: Good control; errors rarely impede communication.
+      - score: 3
+        descriptor: Sufficient control; errors sometimes impede, especially in complex ideas.
+      - score: 2
+        descriptor: Serious lapses; errors frequently impede; reader regularly has to reconstruct meaning.
+      - score: 1
+        descriptor: Repeated errors cause misunderstanding or breakdown; reader repeatedly stops to re-read; systematic interference.
+      - score: 0
+        descriptor: Errors cause communication breakdown throughout.
+
+# Deterministic word-count penalties applied by the backend (Writing §11).
+penalty_rules:
+  - code: word_count
+    rule_type: word_count
+    priority: 10
+    condition:
+      bands:
+        - {min: 476, max: null, penalty: -3}
+        - {min: 376, max: 475, penalty: -2}
+        - {min: 276, max: 375, penalty: -1}
+        - {min: 225, max: 275, penalty: 0}
+        - {min: 210, max: 224, penalty: -1}
+        - {min: 190, max: 209, penalty: -2}
+        - {min: 170, max: 189, penalty: -3}
+        - {min: 150, max: 169, penalty: -4}
+        - {min: 130, max: 149, penalty: -5}
+        - {min: 111, max: 129, penalty: -6}
+        - {min: 0, max: 110, penalty: null, zero_total: true}
+    action: {type: subtract}
+
+# Criterion dependency (Writing §12).
+dependency_rules:
+  - condition: {criterion: task_achievement, equals: 0}
+    action: {set_all_zero: true}
+    priority: 1

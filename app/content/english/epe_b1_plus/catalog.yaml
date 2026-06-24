@@ -1,0 +1,34 @@
+# Academic catalog for the English EPE B1+ profile (ТЗ §6).
+subject:
+  code: english
+  name: English
+  description: English language exam preparation.
+
+exam_profile:
+  code: epe_b1_plus
+  name: EPE B1+
+  level: b1_plus
+  version: v1
+  description: VWU English Proficiency Exam, B1+ level.
+
+skill:
+  code: writing
+  name: Writing
+  position: 1
+
+task_family:
+  code: blog_comment
+  name: Blog Comment
+  answer_format: text
+  default_evaluator_code: LLMWritingEvaluator
+  description: Write a blog comment responding to a source post with three content points.
+
+blueprint:
+  code: epe_b1_plus_blog_comment_v1
+  version: v1
+  title: EPE B1+ Blog Comment
+  difficulty: b1_plus
+  recommended_minutes: 40
+  target_word_count_min: 225
+  target_word_count_max: 275
+  max_score: 20

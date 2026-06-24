@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "epe_b1_plus_blog_comment_gen_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "source_post", "instruction", "content_points", "target_words"],
+  "properties": {
+    "title": {"type": "string", "minLength": 3},
+    "source_post": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["author", "body"],
+      "properties": {
+        "author": {"type": "string"},
+        "body": {"type": "string", "minLength": 40}
+      }
+    },
+    "instruction": {"type": "string"},
+    "content_points": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "instruction", "required"],
+        "properties": {
+          "id": {"type": "string"},
+          "instruction": {"type": "string"},
+          "required": {"type": "boolean"}
+        }
+      }
+    },
+    "topic_tags": {"type": "array", "items": {"type": "string"}},
+    "expected_register": {"type": "string"},
+    "target_words": {"type": "integer"}
+  }
+}

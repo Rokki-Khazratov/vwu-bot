@@ -1,0 +1,41 @@
+# Seed blog-comment task instances (Writing §4). Status: active.
+tasks:
+  - checksum: seed_blog_living_with_parents
+    title: "Living with parents or moving out?"
+    difficulty: b1_plus
+    recommended_minutes: 40
+    target_words: 250
+    source_post:
+      author: Jason
+      body: >
+        I'm starting university in Vienna this autumn and I can't decide what to do.
+        My parents say I should keep living at home to save money and have home-cooked
+        meals, but my friends keep telling me that moving into a shared flat is the only
+        way to become truly independent. Part of me loves the idea of my own space, but
+        another part worries about rent, bills and cooking for myself. What would you do?
+    instruction: "Write a blog comment responding to Jason."
+    content_points:
+      - {id: cp_1, instruction: "Discuss one side of the dilemma (e.g. living at home).", required: true}
+      - {id: cp_2, instruction: "Discuss the alternative (e.g. moving out).", required: true}
+      - {id: cp_3, instruction: "Give Jason a personal recommendation.", required: true}
+    topic_tags: [independence, university, money]
+
+  - checksum: seed_blog_smartphone_classroom
+    title: "Should smartphones be allowed in class?"
+    difficulty: b1_plus
+    recommended_minutes: 40
+    target_words: 250
+    source_post:
+      author: Mara
+      body: >
+        Our school just announced that students will no longer be allowed to use
+        smartphones during lessons. Some classmates are furious because they use their
+        phones for dictionaries, notes and reminders. Others think it's a great idea
+        because phones are simply too distracting. I honestly don't know which side I'm
+        on. Do the benefits really outweigh the distractions?
+    instruction: "Write a blog comment responding to Mara."
+    content_points:
+      - {id: cp_1, instruction: "Discuss the benefits of using phones in class.", required: true}
+      - {id: cp_2, instruction: "Discuss the drawbacks and distractions.", required: true}
+      - {id: cp_3, instruction: "Give Mara a personal recommendation.", required: true}
+    topic_tags: [technology, education, focus]
