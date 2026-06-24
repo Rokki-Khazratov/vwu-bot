@@ -127,6 +127,19 @@ class ProviderQuotaExceeded(AppError):
     message = "Provider quota exceeded."
 
 
+# --- Dictionary ---
+class DictionaryWordNotFound(AppError):
+    code = "DICTIONARY_WORD_NOT_FOUND"
+    http_status = 404
+    message = "Word not found."
+
+
+class DictionaryProviderError(AppError):
+    code = "DICTIONARY_PROVIDER_ERROR"
+    http_status = 502
+    message = "Dictionary provider error."
+
+
 # --- Generic ---
 class IdempotencyConflict(AppError):
     code = "IDEMPOTENCY_CONFLICT"
