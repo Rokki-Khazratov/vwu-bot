@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     bot_service_token: str = ""
     dev_default_telegram_id: int | None = None
 
+    # Admin panel
+    admin_username: str = "admin"
+    admin_password: str = "admin"
+    session_secret: str = "change-me-in-production"
+
     # LLM (Gemini)
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-pro"

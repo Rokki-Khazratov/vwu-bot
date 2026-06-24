@@ -26,6 +26,11 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(api_v1_router)
 
+    # Admin web panel at /admin (SQLAdmin).
+    from app.admin.panel import setup_admin
+
+    setup_admin(app)
+
     return app
 
 
