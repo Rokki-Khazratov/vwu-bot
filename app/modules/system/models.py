@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, String
@@ -11,6 +12,21 @@ from app.core.database import Base, JSONColumn
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+class AuditLog(UUIDPrimaryKey, Base):
+    """Append-only record of admin mutations (ТЗ §33)."""
+
+    __tablename__ = "audit_logs"
+
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column()
+    action: Mapped[str] = mapped_column(String(64), index=True)
+    entity_type: Mapped[str] = mapped_column(String(64), index=True)
+    entity_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    before: Mapped[dict | None] = mapped_column(JSONColumn)
+    after: Mapped[dict | None] = mapped_column(JSONColumn)
+    reason: Mapped[str | None] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
 class IdempotencyKey(UUIDPrimaryKey, Base):

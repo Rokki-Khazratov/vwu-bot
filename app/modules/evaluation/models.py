@@ -220,6 +220,23 @@ class ContentPointAssessment(UUIDPrimaryKey, Base):
     comment: Mapped[str | None] = mapped_column(Text)
 
 
+class ScoreCorrection(UUIDPrimaryKey, Base):
+    """Admin override of an evaluation, preserving the original AI result (Writing §23)."""
+
+    __tablename__ = "score_corrections"
+
+    attempt_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("attempts.id"), index=True)
+    evaluation_result_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("evaluation_results.id"), index=True
+    )
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    kind: Mapped[str] = mapped_column(String(16))  # score|feedback
+    original: Mapped[dict] = mapped_column(JSONColumn)
+    corrected: Mapped[dict] = mapped_column(JSONColumn)
+    reason: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class ErrorEvent(UUIDPrimaryKey, Base):
     __tablename__ = "error_events"
 
