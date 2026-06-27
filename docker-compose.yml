@@ -1,0 +1,11 @@
+services:
+  bot:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # Point at the backend (running from the `api` branch / its own compose).
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
