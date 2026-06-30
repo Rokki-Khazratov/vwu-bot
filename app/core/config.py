@@ -25,10 +25,21 @@ class Settings(BaseSettings):
     bot_service_token: str = ""
     dev_default_telegram_id: int | None = None
 
+    # Admin panel
+    admin_username: str = "admin"
+    admin_password: str = "admin"
+    session_secret: str = "change-me-in-production"
+
     # LLM (Gemini)
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-pro"
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
+
+    # Dictionary providers
+    pons_api_key: str = ""
+    pons_base_url: str = "https://api.pons.com"
+    free_dictionary_base_url: str = "https://api.dictionaryapi.dev"
+    dictionary_cache_ttl_hours: int = 720  # 30 days
 
     @field_validator("allowlist_telegram_ids", mode="before")
     @classmethod
