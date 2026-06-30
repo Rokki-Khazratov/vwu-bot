@@ -27,6 +27,26 @@ logger = logging.getLogger("app.llm.gemini")
 _NETWORK_RETRIES = 2
 _TIMEOUT_SECONDS = 60.0
 
+# Keys Gemini's responseSchema (OpenAPI subset) understands. Everything else
+# (additionalProperties, $schema, numeric/array bounds) is dropped here but
+# still enforced by our local JSON Schema validation + repair retry.
+_GEMINI_SCHEMA_KEYS = {"type", "properties", "required", "items", "enum", "nullable", "format"}
+
+
+def to_gemini_schema(schema: dict) -> dict:
+    """Convert a JSON Schema to Gemini's responseSchema subset (recursive)."""
+    if not isinstance(schema, dict):
+        return schema
+    out: dict = {}
+    for key, value in schema.items():
+        if key == "properties" and isinstance(value, dict):
+            out["properties"] = {k: to_gemini_schema(v) for k, v in value.items()}
+        elif key == "items":
+            out["items"] = to_gemini_schema(value)
+        elif key in _GEMINI_SCHEMA_KEYS:
+            out[key] = value
+    return out
+
 
 class GeminiProvider(LLMProvider):
     name = "gemini"
@@ -47,14 +67,20 @@ class GeminiProvider(LLMProvider):
     def _url(self) -> str:
         return f"{self._base_url}/v1beta/models/{self._model}:generateContent"
 
-    def _build_body(self, system_prompt: str, user_prompt: str, temperature: float) -> dict:
+    def _build_body(
+        self, system_prompt: str, user_prompt: str, temperature: float, schema: dict | None
+    ) -> dict:
+        generation_config: dict = {
+            "responseMimeType": "application/json",
+            "temperature": temperature,
+        }
+        if schema:
+            # Constrain the output shape at the provider; values still validated locally.
+            generation_config["responseSchema"] = to_gemini_schema(schema)
         return {
             "system_instruction": {"parts": [{"text": system_prompt}]},
             "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": temperature,
-            },
+            "generationConfig": generation_config,
         }
 
     async def _post(self, body: dict) -> dict:
@@ -111,7 +137,9 @@ class GeminiProvider(LLMProvider):
         payload: dict = {}
 
         for attempt in range(request.max_repair_retries + 1):
-            body = self._build_body(system_prompt, user_prompt, request.temperature)
+            body = self._build_body(
+                system_prompt, user_prompt, request.temperature, request.output_schema
+            )
             payload = await self._post(body)
             text = self._extract_text(payload)
 

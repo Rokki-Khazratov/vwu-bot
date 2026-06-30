@@ -62,3 +62,16 @@ class AuditLogOut(BaseModel):
     entity_id: str | None = None
     reason: str | None = None
     created_at: datetime
+
+
+class JobOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    kind: str
+    status: str
+    ref_id: str | None = None
+    error: str | None = None
+    attempts: int
+    created_at: datetime
+    updated_at: datetime

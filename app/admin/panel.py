@@ -41,7 +41,7 @@ from app.modules.evaluation.models import (
 )
 from app.modules.flashcards.models import FlashcardReview, UserWord
 from app.modules.llm.models import LLMCall
-from app.modules.system.models import AuditLog
+from app.modules.system.models import AuditLog, BackgroundJob
 from app.modules.tasks.models import TaskInstance
 from app.modules.training.models import TrainingSession
 
@@ -194,6 +194,13 @@ class AuditLogAdmin(ModelView, model=AuditLog):
     can_create = can_edit = can_delete = False
 
 
+class BackgroundJobAdmin(ModelView, model=BackgroundJob):
+    category = "Observability"
+    column_list = [BackgroundJob.kind, BackgroundJob.status, BackgroundJob.ref_id,
+                   BackgroundJob.attempts, BackgroundJob.error, BackgroundJob.created_at]
+    can_create = can_edit = False
+
+
 class UserAdmin(ModelView, model=User):
     category = "Access"
     column_list = [User.telegram_id, User.username, User.status, User.last_seen_at]
@@ -225,7 +232,8 @@ _VIEWS = [
     PenaltyRuleAdmin, DependencyRuleAdmin, EvaluationProfileAdmin, PromptTemplateAdmin,
     OutputSchemaAdmin, ErrorTaxonomyAdmin, TaskInstanceAdmin, TrainingSessionAdmin,
     AttemptAdmin, EvaluationResultAdmin, ScoreCorrectionAdmin, LLMCallAdmin,
-    AuditLogAdmin, UserAdmin, DictionaryEntryAdmin, UserWordAdmin, FlashcardReviewAdmin,
+    AuditLogAdmin, BackgroundJobAdmin, UserAdmin, DictionaryEntryAdmin, UserWordAdmin,
+    FlashcardReviewAdmin,
 ]
 
 

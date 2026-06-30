@@ -26,6 +26,11 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(api_v1_router)
 
+    # Calibration dashboard at /panel (static HTML over the admin API).
+    from app.admin.dashboard import router as dashboard_router
+
+    app.include_router(dashboard_router)
+
     # Admin web panel at /admin (SQLAdmin).
     from app.admin.panel import setup_admin
 

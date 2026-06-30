@@ -8,17 +8,19 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin.schemas import TaskPatchRequest
 from app.api.dependencies.admin import require_admin
 from app.api.dependencies.db import get_db
 from app.api.errors.route import EnvelopeRoute
+from app.core.config import get_settings
 from app.core.exceptions import TaskNotFound
 from app.modules.access.models import User
 from app.modules.llm.factory import get_llm_provider
 from app.modules.llm.provider import LLMProvider
+from app.modules.system import jobs
 from app.modules.system.audit import record_audit
 from app.modules.tasks import repository as repo
 from app.modules.tasks.generation import generate_tasks
@@ -27,20 +29,33 @@ from app.modules.tasks.schemas import ActivateResponse, BatchGenerateRequest, Ta
 router = APIRouter(prefix="/admin/tasks", tags=["admin:tasks"], route_class=EnvelopeRoute)
 
 
-@router.post("/batch-generate", response_model=list[TaskInstanceOut])
+@router.post("/batch-generate")
 async def batch_generate(
     payload: BatchGenerateRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     provider: LLMProvider = Depends(get_llm_provider),
     _: User = Depends(require_admin),
-) -> list[TaskInstanceOut]:
+) -> dict | list:
+    if get_settings().generation_async:
+        job = await jobs.create_job(
+            db, kind="batch_generation", payload=payload.model_dump()
+        )
+        await db.commit()
+        from app.workers.tasks import batch_generate as batch_task
+
+        batch_task.delay(payload.blueprint_code, payload.count, str(job.id))
+        response.status_code = 202
+        return {"job_id": str(job.id), "status": "queued",
+                "poll": "/api/v1/admin/jobs?kind=batch_generation"}
+
     tasks = await generate_tasks(
         db, provider,
         blueprint_code=payload.blueprint_code,
         count=payload.count,
         difficulty=payload.difficulty,
     )
-    return [TaskInstanceOut.model_validate(t) for t in tasks]
+    return [TaskInstanceOut.model_validate(t).model_dump(mode="json") for t in tasks]
 
 
 @router.get("", response_model=list[TaskInstanceOut])
