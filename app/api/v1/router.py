@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.admin.attempts import router as admin_attempts_router
 from app.admin.catalog import router as admin_catalog_router
+from app.admin.guidelines import router as admin_guidelines_router
 from app.admin.observability import router as admin_observability_router
 from app.admin.tasks import router as admin_tasks_router
 from app.api.v1.access import router as access_router
@@ -24,6 +25,7 @@ api_v1_router.include_router(dictionary_router)
 api_v1_router.include_router(words_router)
 api_v1_router.include_router(cards_router)
 api_v1_router.include_router(admin_tasks_router)
+api_v1_router.include_router(admin_guidelines_router)
 api_v1_router.include_router(admin_attempts_router)
 api_v1_router.include_router(admin_observability_router)
 api_v1_router.include_router(admin_catalog_router)

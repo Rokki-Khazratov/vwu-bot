@@ -35,6 +35,17 @@ class SessionOut(BaseModel):
     created_at: datetime
 
 
+class SessionHistoryOut(SessionOut):
+    subject_code: str | None = None
+    exam_profile_code: str | None = None
+    skill_code: str | None = None
+    task_family_code: str | None = None
+    task_id: uuid.UUID | None = None
+    task_title: str | None = None
+    attempt_id: uuid.UUID | None = None
+    duration_seconds: int | None = None
+
+
 class CreateSessionResponse(BaseModel):
     session: SessionOut
     task: TaskInstanceOut

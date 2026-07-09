@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import time
+from typing import Any
 
 import httpx
 
@@ -57,12 +58,18 @@ class GeminiProvider(LLMProvider):
         model: str | None = None,
         base_url: str | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
+        google_ai_mode: str | None = None,
+        vertex_client: Any | None = None,
     ) -> None:
         settings = get_settings()
         self._api_key = api_key or settings.gemini_api_key
         self._model = model or settings.gemini_model
         self._base_url = (base_url or settings.gemini_base_url).rstrip("/")
         self._transport = transport  # injected in tests
+        self._google_ai_mode = (google_ai_mode or settings.google_ai_mode).lower()
+        self._vertex_project = settings.google_cloud_project
+        self._vertex_location = settings.google_cloud_location
+        self._vertex_client = vertex_client
 
     def _url(self) -> str:
         return f"{self._base_url}/v1beta/models/{self._model}:generateContent"
@@ -83,8 +90,71 @@ class GeminiProvider(LLMProvider):
             "generationConfig": generation_config,
         }
 
+    def _get_vertex_client(self) -> Any:
+        if self._vertex_client is None:
+            try:
+                from google import genai
+            except ImportError as exc:
+                raise LLMUnavailable(
+                    "google-genai is required for GOOGLE_AI_MODE=vertex"
+                ) from exc
+            self._vertex_client = genai.Client(
+                vertexai=True,
+                project=self._vertex_project or None,
+                location=self._vertex_location or None,
+            )
+        return self._vertex_client
+
+    @staticmethod
+    def _prompt_text(part: dict) -> str:
+        parts = part.get("parts") or []
+        return "".join(p.get("text", "") for p in parts if isinstance(p, dict))
+
+    async def _post_vertex(self, body: dict) -> dict:
+        """Call Vertex AI through google-genai and normalize to Gemini REST shape."""
+        try:
+            from google.genai import types
+        except ImportError as exc:
+            raise LLMUnavailable("google-genai is required for GOOGLE_AI_MODE=vertex") from exc
+
+        system_prompt = self._prompt_text(body.get("system_instruction", {}))
+        contents = body.get("contents") or []
+        user_prompt = self._prompt_text(contents[0]) if contents else ""
+        generation_config = body.get("generationConfig") or {}
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt or None,
+            response_mime_type=generation_config.get("responseMimeType"),
+            response_schema=generation_config.get("responseSchema"),
+            temperature=generation_config.get("temperature"),
+        )
+
+        try:
+            response = await asyncio.to_thread(
+                self._get_vertex_client().models.generate_content,
+                model=self._model,
+                contents=user_prompt,
+                config=config,
+            )
+        except Exception as exc:
+            raise LLMUnavailable(f"Vertex AI request failed: {exc}") from exc
+
+        usage = getattr(response, "usage_metadata", None)
+        return {
+            "candidates": [{"content": {"parts": [{"text": getattr(response, "text", "")}]}}],
+            "usageMetadata": {
+                "promptTokenCount": getattr(usage, "prompt_token_count", None),
+                "candidatesTokenCount": getattr(usage, "candidates_token_count", None),
+                "cachedContentTokenCount": getattr(usage, "cached_content_token_count", None),
+            },
+        }
+
     async def _post(self, body: dict) -> dict:
         """POST with backoff for network/5xx errors (ТЗ §19.3)."""
+        if self._google_ai_mode == "vertex":
+            return await self._post_vertex(body)
+        if self._google_ai_mode != "gemini_api":
+            raise LLMUnavailable(f"Unsupported GOOGLE_AI_MODE: {self._google_ai_mode}")
+
         last_exc: Exception | None = None
         async with httpx.AsyncClient(
             timeout=_TIMEOUT_SECONDS, transport=self._transport

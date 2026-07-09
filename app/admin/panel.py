@@ -22,7 +22,9 @@ from app.modules.catalog.models import (
     Skill,
     Subject,
     TaskBlueprint,
+    TaskBlueprintGuideline,
     TaskFamily,
+    TaskInstanceGuideline,
 )
 from app.modules.dictionary.models import DictionaryEntry
 from app.modules.evaluation.models import (
@@ -92,11 +94,37 @@ class TaskBlueprintAdmin(ModelView, model=TaskBlueprint):
     category = "Catalog"
     column_list = [TaskBlueprint.code, TaskBlueprint.version, TaskBlueprint.title,
                    TaskBlueprint.max_score, TaskBlueprint.is_active]
+    column_searchable_list = [TaskBlueprint.code, TaskBlueprint.title]
 
 
 class GuidelineAdmin(ModelView, model=Guideline):
     category = "Catalog"
-    column_list = [Guideline.code, Guideline.version, Guideline.status]
+    column_list = [Guideline.code, Guideline.version, Guideline.default_role, Guideline.status]
+    column_searchable_list = [Guideline.code, Guideline.body_markdown]
+
+
+class TaskBlueprintGuidelineAdmin(ModelView, model=TaskBlueprintGuideline):
+    category = "Catalog"
+    column_list = [
+        TaskBlueprintGuideline.blueprint_id,
+        TaskBlueprintGuideline.guideline_id,
+        TaskBlueprintGuideline.role,
+        TaskBlueprintGuideline.position,
+        TaskBlueprintGuideline.include_in_generation,
+        TaskBlueprintGuideline.include_in_evaluation,
+    ]
+
+
+class TaskInstanceGuidelineAdmin(ModelView, model=TaskInstanceGuideline):
+    category = "Catalog"
+    column_list = [
+        TaskInstanceGuideline.task_id,
+        TaskInstanceGuideline.guideline_id,
+        TaskInstanceGuideline.role,
+        TaskInstanceGuideline.position,
+        TaskInstanceGuideline.include_in_generation,
+        TaskInstanceGuideline.include_in_evaluation,
+    ]
 
 
 # --- Evaluation config ---
@@ -228,7 +256,8 @@ class FlashcardReviewAdmin(ModelView, model=FlashcardReview):
 
 _VIEWS = [
     SubjectAdmin, ExamProfileAdmin, SkillAdmin, TaskFamilyAdmin, TaskBlueprintAdmin,
-    GuidelineAdmin, RubricAdmin, RubricCriterionAdmin, PerformanceBandAdmin,
+    GuidelineAdmin, TaskBlueprintGuidelineAdmin, TaskInstanceGuidelineAdmin,
+    RubricAdmin, RubricCriterionAdmin, PerformanceBandAdmin,
     PenaltyRuleAdmin, DependencyRuleAdmin, EvaluationProfileAdmin, PromptTemplateAdmin,
     OutputSchemaAdmin, ErrorTaxonomyAdmin, TaskInstanceAdmin, TrainingSessionAdmin,
     AttemptAdmin, EvaluationResultAdmin, ScoreCorrectionAdmin, LLMCallAdmin,

@@ -1,4 +1,6 @@
 import json
+import sys
+import types
 
 import httpx
 import pytest
@@ -89,3 +91,50 @@ async def test_schema_invalid_raises_after_retries():
         await provider.generate_structured(
             LLMRequest(purpose="t", system_prompt="s", user_prompt="u", output_schema=SCHEMA)
         )
+
+
+async def test_vertex_mode_uses_injected_google_genai_client(monkeypatch):
+    captured = {}
+
+    class FakeGenerateContentConfig:
+        def __init__(self, **kwargs):
+            captured["config"] = kwargs
+
+    fake_google = types.ModuleType("google")
+    fake_genai = types.ModuleType("google.genai")
+    fake_types = types.ModuleType("google.genai.types")
+    fake_types.GenerateContentConfig = FakeGenerateContentConfig
+    fake_genai.types = fake_types
+    fake_google.genai = fake_genai
+    monkeypatch.setitem(sys.modules, "google", fake_google)
+    monkeypatch.setitem(sys.modules, "google.genai", fake_genai)
+    monkeypatch.setitem(sys.modules, "google.genai.types", fake_types)
+
+    class FakeModels:
+        def generate_content(self, **kwargs):
+            captured["kwargs"] = kwargs
+            response = types.SimpleNamespace(
+                text=json.dumps({"score": 5}),
+                usage_metadata=types.SimpleNamespace(
+                    prompt_token_count=11,
+                    candidates_token_count=6,
+                    cached_content_token_count=2,
+                ),
+            )
+            return response
+
+    fake_client = types.SimpleNamespace(models=FakeModels())
+    provider = GeminiProvider(
+        model="gemini-2.5-flash",
+        google_ai_mode="vertex",
+        vertex_client=fake_client,
+    )
+    result = await provider.generate_structured(
+        LLMRequest(purpose="t", system_prompt="system", user_prompt="user", output_schema=SCHEMA)
+    )
+
+    assert result.data == {"score": 5}
+    assert captured["kwargs"]["model"] == "gemini-2.5-flash"
+    assert captured["kwargs"]["contents"] == "user"
+    assert captured["config"]["system_instruction"] == "system"
+    assert result.cached_tokens == 2

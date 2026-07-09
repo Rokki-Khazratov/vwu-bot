@@ -31,9 +31,12 @@ class Settings(BaseSettings):
     session_secret: str = "change-me-in-production"
 
     # LLM (Gemini)
+    google_ai_mode: str = "gemini_api"  # gemini_api|vertex
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-pro"
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
+    google_cloud_project: str = ""
+    google_cloud_location: str = "us-central1"
 
     # Async workers (Celery + Redis)
     redis_url: str = "redis://localhost:6379/0"

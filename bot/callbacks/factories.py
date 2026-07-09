@@ -9,7 +9,7 @@ from aiogram.filters.callback_data import CallbackData
 
 
 class MenuCB(CallbackData, prefix="v1menu"):
-    action: str  # train | stats | dictionary | history | review | back
+    action: str  # profile | train | stats | dictionary | history | review | back
 
 
 class CatalogCB(CallbackData, prefix="v1cat"):
@@ -18,7 +18,7 @@ class CatalogCB(CallbackData, prefix="v1cat"):
 
 
 class SessionCB(CallbackData, prefix="v1sess"):
-    action: str  # start | cancel | next
+    action: str  # start | cancel | next | final_submit | continue
     session_id: str
 
 

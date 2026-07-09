@@ -58,5 +58,15 @@ services:
         condition: service_healthy
     command: celery -A app.workers.celery_app.celery_app worker --beat --loglevel=info
 
+  bot:
+    build: .
+    env_file:
+      - .env
+    environment:
+      BACKEND_BASE_URL: http://api:8000
+    depends_on:
+      - api
+    command: python -m bot.main
+
 volumes:
   pgdata:
