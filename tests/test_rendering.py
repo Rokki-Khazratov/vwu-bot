@@ -1,5 +1,12 @@
 from bot.rendering.escaping import escape
-from bot.rendering.renderer import render_blocks, render_writing_feedback
+from bot.rendering.renderer import (
+    render_blocks,
+    render_history,
+    render_profile,
+    render_statistics,
+    render_task,
+    render_writing_feedback,
+)
 from bot.rendering.splitter import split_html
 
 # Shape mirrors what the backend's writing engine actually emits.
@@ -63,3 +70,56 @@ def test_splitter_respects_limit():
 
 def test_splitter_single_message_when_small():
     assert split_html("<p>hi</p>", max_chars=100) == ["<p>hi</p>"]
+
+
+def test_render_task_outputs_prompt_and_constraints():
+    html = render_task({
+        "title": "Living with parents",
+        "content": {
+            "source_post": {"author": "Jason", "body": "What should I do?"},
+            "instruction": "Write a blog comment.",
+            "target_words": 250,
+        },
+        "content_points": [{"instruction": "Give advice."}],
+        "recommended_minutes": 40,
+    })
+    assert "<h1>Living with parents</h1>" in html
+    assert "Jason" in html
+    assert "Give advice." in html
+    assert "250" in html and "40" in html
+
+
+def test_render_history_includes_task_scores():
+    html = render_history([
+        {
+            "task_title": "Task A",
+            "status": "completed",
+            "score_earned": 12,
+            "score_max": 20,
+        }
+    ])
+    assert "Task A" in html
+    assert "12 / 20" in html
+
+
+def test_render_profile_and_expanded_statistics():
+    profile = render_profile({
+        "me": {"telegram_id": 1, "status": "active", "display_name": "Rokki"},
+        "overview": {"sessions_completed": 2, "average_percent": 70},
+        "weaknesses": [{"criterion_code": "accuracy", "weakness_score": 44}],
+        "history": [{"task_title": "Blog", "score_earned": 14, "score_max": 20}],
+    })
+    assert "Профиль" in profile
+    assert "Rokki" in profile
+    assert "accuracy" in profile
+
+    stats = render_statistics({
+        "sessions_completed": 2,
+        "tasks_evaluated": 2,
+        "average_percent": 70,
+        "criteria": [{"criterion_code": "accuracy", "avg_score": 3, "max_score": 5}],
+        "repeated_errors": [{"category": "grammar", "count": 2}],
+        "weaknesses": [{"criterion_code": "accuracy", "weakness_score": 44}],
+    })
+    assert "Проверено заданий" in stats
+    assert "grammar" in stats

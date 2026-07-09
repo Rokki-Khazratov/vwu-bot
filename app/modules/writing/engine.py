@@ -12,6 +12,11 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EvaluationFailed
+from app.modules.catalog.guidelines import (
+    format_guideline_block,
+    guideline_metadata,
+    guidelines_for_task_context,
+)
 from app.modules.evaluation import repository as repo
 from app.modules.evaluation.models import (
     Attempt,
@@ -74,6 +79,10 @@ async def evaluate_writing(
 
     content = task.content or {}
     source = content.get("source_post", {})
+    guidelines = await guidelines_for_task_context(
+        db, task_id=task.id, blueprint_id=task.blueprint_id, purpose="evaluation"
+    )
+    guideline_block = format_guideline_block(guidelines)
     variables = {
         "rubric_block": _rubric_block(criteria, bands_by_criterion),
         "task_title": task.title,
@@ -86,11 +95,14 @@ async def evaluate_writing(
         "word_count": attempt.word_count or 0,
         "candidate_text": attempt.normalized_answer or "",
     }
+    system_prompt = render_template(prompt.system_template, variables)
+    if guideline_block:
+        system_prompt = f"{system_prompt}\n\n{guideline_block}"
 
     result_llm = await provider.generate_structured(
         LLMRequest(
             purpose="writing_evaluation",
-            system_prompt=render_template(prompt.system_template, variables),
+            system_prompt=system_prompt,
             user_prompt=render_template(prompt.user_template, variables),
             output_schema=schema.json_schema,
             temperature=profile.temperature,
@@ -139,6 +151,7 @@ async def evaluate_writing(
             "attempts": result_llm.attempts,
             "penalties": [{"code": "word_count", "value": penalty.penalty,
                            "details": penalty.details}],
+            "guidelines": guideline_metadata(guidelines),
         },
     )
     db.add(result)

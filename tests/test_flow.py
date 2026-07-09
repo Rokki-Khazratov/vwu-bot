@@ -1,7 +1,13 @@
 """End-to-end writing flow with a mocked LLM provider (ТЗ §39)."""
 
+import uuid
+
+from sqlalchemy import select
+
 from app.content.seed import seed_all
 from app.main import app
+from app.modules.catalog.models import Guideline, TaskBlueprintGuideline
+from app.modules.evaluation.models import Attempt, EvaluationResult
 from app.modules.llm.factory import get_llm_provider
 from tests._fakes import VALID_EVALUATION, FakeProvider
 
@@ -94,3 +100,45 @@ async def test_dependency_zero_when_ta_zero(client, db):
     # task_achievement = 0 → all criteria 0 → final 0.
     assert payload["score"]["raw"] == 0
     assert payload["score"]["final"] == 0
+
+
+async def test_writing_evaluation_uses_linked_guidelines(client, db):
+    seeded = await seed_all(db)
+    guideline = Guideline(
+        code="writing_eval_extra",
+        version="v1",
+        default_role="evaluation",
+        body_markdown="Always mention whether the answer follows the uploaded sample rules.",
+        checksum="test",
+        status="active",
+    )
+    db.add(guideline)
+    await db.flush()
+    db.add(
+        TaskBlueprintGuideline(
+            blueprint_id=seeded["blueprint"].id,
+            guideline_id=guideline.id,
+            role="evaluation",
+            position=0,
+            include_in_generation=False,
+            include_in_evaluation=True,
+        )
+    )
+    await db.commit()
+    fake = FakeProvider(VALID_EVALUATION)
+    app.dependency_overrides[get_llm_provider] = lambda: fake
+
+    ids = await _create_started_session(client)
+    resp = await client.post("/api/v1/attempts", json={
+        "session_id": ids["session_id"],
+        "task_id": ids["task_id"],
+        "answer": {"type": "text", "text": ANSWER_TEXT},
+    })
+    assert resp.status_code == 200, resp.text
+    assert "uploaded sample rules" in fake.calls[0].system_prompt
+
+    attempt = await db.get(Attempt, uuid.UUID(resp.json()["data"]["attempt_id"]))
+    result = (await db.execute(
+        select(EvaluationResult).where(EvaluationResult.attempt_id == attempt.id)
+    )).scalar_one()
+    assert result.provider_metadata["guidelines"][0]["code"] == "writing_eval_extra"

@@ -13,6 +13,7 @@ RUN pip install --upgrade pip && pip install -e .
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+COPY bot ./bot
 
 EXPOSE 8000
 

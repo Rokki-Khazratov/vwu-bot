@@ -100,6 +100,7 @@ class Guideline(UUIDPrimaryKey, Base):
 
     code: Mapped[str] = mapped_column(String(64), index=True)
     version: Mapped[str] = mapped_column(String(32), default="v1")
+    default_role: Mapped[str] = mapped_column(String(32), default="notes")
     subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subjects.id"))
     exam_profile_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exam_profiles.id"))
     skill_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("skills.id"))
@@ -111,3 +112,35 @@ class Guideline(UUIDPrimaryKey, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
+
+
+class TaskBlueprintGuideline(UUIDPrimaryKey, Base):
+    __tablename__ = "task_blueprint_guidelines"
+    __table_args__ = (
+        UniqueConstraint(
+            "blueprint_id", "guideline_id", "role", name="uq_blueprint_guideline_role"
+        ),
+    )
+
+    blueprint_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("task_blueprints.id"), index=True
+    )
+    guideline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("guidelines.id"), index=True)
+    role: Mapped[str] = mapped_column(String(32))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    include_in_generation: Mapped[bool] = mapped_column(default=False)
+    include_in_evaluation: Mapped[bool] = mapped_column(default=True)
+
+
+class TaskInstanceGuideline(UUIDPrimaryKey, Base):
+    __tablename__ = "task_instance_guidelines"
+    __table_args__ = (
+        UniqueConstraint("task_id", "guideline_id", "role", name="uq_task_guideline_role"),
+    )
+
+    task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("task_instances.id"), index=True)
+    guideline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("guidelines.id"), index=True)
+    role: Mapped[str] = mapped_column(String(32))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    include_in_generation: Mapped[bool] = mapped_column(default=False)
+    include_in_evaluation: Mapped[bool] = mapped_column(default=True)

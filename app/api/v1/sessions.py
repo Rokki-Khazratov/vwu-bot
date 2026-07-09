@@ -19,6 +19,7 @@ from app.modules.training.schemas import (
     CreateSessionRequest,
     CreateSessionResponse,
     NextTaskResponse,
+    SessionHistoryOut,
     SessionOut,
 )
 
@@ -49,13 +50,13 @@ async def create_session(
     )
 
 
-@router.get("/history", response_model=list[SessionOut])
+@router.get("/history", response_model=list[SessionHistoryOut])
 async def history(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
-) -> list[SessionOut]:
-    sessions = await repo.list_sessions(db, user.id)
-    return [SessionOut.model_validate(s) for s in sessions]
+) -> list[SessionHistoryOut]:
+    history_rows = await repo.list_session_history(db, user.id)
+    return [SessionHistoryOut.model_validate(s) for s in history_rows]
 
 
 @router.get("/{session_id}", response_model=SessionOut)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -23,6 +24,55 @@ class TaskPatchRequest(BaseModel):
     title: str | None = None
     difficulty: str | None = None
     status: str | None = None
+
+
+GuidelineRole = Literal["generation", "evaluation", "example", "notes"]
+
+
+class GuidelineCreateRequest(BaseModel):
+    code: str
+    version: str = "v1"
+    role: GuidelineRole = "notes"
+    status: str = "active"
+    body_markdown: str
+    frontmatter: dict | None = None
+    subject_id: uuid.UUID | None = None
+    exam_profile_id: uuid.UUID | None = None
+    skill_id: uuid.UUID | None = None
+    task_family_id: uuid.UUID | None = None
+
+
+class GuidelineLinkRequest(BaseModel):
+    guideline_id: uuid.UUID
+    role: GuidelineRole
+    position: int = 0
+    include_in_generation: bool = False
+    include_in_evaluation: bool = True
+
+
+class GuidelineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    code: str
+    version: str
+    default_role: str
+    status: str
+    checksum: str | None = None
+    body_markdown: str | None = None
+    frontmatter: dict | None = None
+    created_at: datetime
+
+
+class LinkedGuidelineOut(BaseModel):
+    id: uuid.UUID
+    guideline_id: uuid.UUID
+    code: str
+    version: str
+    role: str
+    position: int
+    include_in_generation: bool
+    include_in_evaluation: bool
 
 
 class AttemptSummary(BaseModel):

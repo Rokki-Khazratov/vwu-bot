@@ -11,6 +11,7 @@ from app.core.exceptions import (
     TaskNotFound,
 )
 from app.modules.catalog.models import ExamProfile, Skill, Subject, TaskBlueprint, TaskFamily
+from app.modules.evaluation.models import Attempt
 from app.modules.tasks.models import TaskInstance
 from app.modules.training.models import SessionTask, TrainingSession
 
@@ -109,3 +110,57 @@ async def list_sessions(
         .limit(limit)
     )
     return list(rows.scalars())
+
+
+async def list_session_history(db: AsyncSession, user_id: uuid.UUID, limit: int = 20) -> list[dict]:
+    rows = await db.execute(
+        select(
+            TrainingSession,
+            Subject.code.label("subject_code"),
+            ExamProfile.code.label("exam_profile_code"),
+            Skill.code.label("skill_code"),
+            TaskFamily.code.label("task_family_code"),
+            TaskInstance.id.label("task_id"),
+            TaskInstance.title.label("task_title"),
+            Attempt.id.label("attempt_id"),
+        )
+        .join(Subject, TrainingSession.subject_id == Subject.id)
+        .join(ExamProfile, TrainingSession.exam_profile_id == ExamProfile.id)
+        .outerjoin(Skill, TrainingSession.skill_id == Skill.id)
+        .outerjoin(TaskFamily, TrainingSession.task_family_id == TaskFamily.id)
+        .outerjoin(SessionTask, SessionTask.session_id == TrainingSession.id)
+        .outerjoin(TaskInstance, SessionTask.task_id == TaskInstance.id)
+        .outerjoin(
+            Attempt,
+            (Attempt.session_id == TrainingSession.id) & (Attempt.task_id == TaskInstance.id),
+        )
+        .where(TrainingSession.user_id == user_id)
+        .order_by(TrainingSession.created_at.desc())
+        .limit(limit)
+    )
+    out: list[dict] = []
+    for row in rows:
+        session = row[0]
+        out.append(
+            {
+                "id": session.id,
+                "mode": session.mode,
+                "status": session.status,
+                "score_earned": float(session.score_earned)
+                if session.score_earned is not None
+                else None,
+                "score_max": float(session.score_max) if session.score_max is not None else None,
+                "started_at": session.started_at,
+                "completed_at": session.completed_at,
+                "created_at": session.created_at,
+                "duration_seconds": session.duration_seconds,
+                "subject_code": row.subject_code,
+                "exam_profile_code": row.exam_profile_code,
+                "skill_code": row.skill_code,
+                "task_family_code": row.task_family_code,
+                "task_id": row.task_id,
+                "task_title": row.task_title,
+                "attempt_id": row.attempt_id,
+            }
+        )
+    return out

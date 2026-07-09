@@ -7,6 +7,11 @@ import hashlib
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BlueprintNotFound, ValidationError
+from app.modules.catalog.guidelines import (
+    format_guideline_block,
+    guideline_metadata,
+    linked_guidelines_for_blueprint,
+)
 from app.modules.llm.prompt import render_template
 from app.modules.llm.provider import LLMProvider, LLMRequest
 from app.modules.llm.repository import record_llm_call
@@ -51,6 +56,8 @@ async def generate_tasks(
 
     target_words = blueprint.target_word_count_min or 250
     banned = await repo.recent_titles(db, blueprint.id)
+    guidelines = await linked_guidelines_for_blueprint(db, blueprint.id, purpose="generation")
+    guideline_block = format_guideline_block(guidelines)
 
     created: list[TaskInstance] = []
     for _ in range(count):
@@ -60,7 +67,7 @@ async def generate_tasks(
                 "difficulty": difficulty or blueprint.difficulty or "b1_plus",
                 "target_words": target_words,
                 "banned_topics": ", ".join(banned) or "none",
-                "extra_instructions": "",
+                "extra_instructions": guideline_block,
             },
         )
         result = await provider.generate_structured(
@@ -89,6 +96,8 @@ async def generate_tasks(
             generator_prompt_id=prompt.id,
             generator_prompt_version=prompt.version,
             generator_model=result.model,
+            guideline_id=guidelines[0]["id"] if guidelines else blueprint.guideline_id,
+            guideline_version=guidelines[0]["version"] if guidelines else None,
             difficulty=draft.get("difficulty") or blueprint.difficulty,
             title=draft["title"],
             content={
@@ -103,6 +112,8 @@ async def generate_tasks(
             status="generated",
             checksum=checksum,
         )
+        if guidelines:
+            task.content["generation_guidelines"] = guideline_metadata(guidelines)
         db.add(task)
         await db.flush()
         banned.append(task.title)

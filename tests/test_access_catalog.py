@@ -7,10 +7,10 @@ async def test_access_me_allowlisted(client):
     assert resp.json()["data"]["telegram_id"] == 111111111
 
 
-async def test_access_denied_for_unknown_id(client):
+async def test_access_open_for_unknown_id(client):
     resp = await client.get("/api/v1/access/me", headers={"X-Telegram-User-Id": "999"})
-    assert resp.status_code == 403
-    assert resp.json()["errors"][0]["code"] == "ACCESS_DENIED"
+    assert resp.status_code == 200
+    assert resp.json()["data"]["telegram_id"] == 999
 
 
 async def test_list_subjects(client, db):
