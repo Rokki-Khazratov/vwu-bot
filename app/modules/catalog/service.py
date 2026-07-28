@@ -13,6 +13,7 @@ from app.modules.catalog.models import (
     ExamProfile,
     Skill,
     Subject,
+    SubjectTask,
     TaskBlueprint,
     TaskFamily,
 )
@@ -42,6 +43,31 @@ async def list_exams(db: AsyncSession, subject_code: str) -> list[ExamProfile]:
         .order_by(ExamProfile.code)
     )
     return list(rows.scalars())
+
+
+async def list_subject_tasks(db: AsyncSession, subject_code: str) -> list[SubjectTask]:
+    subject = await get_subject_by_code(db, subject_code)
+    rows = await db.execute(
+        select(SubjectTask)
+        .where(SubjectTask.subject_id == subject.id, SubjectTask.is_active.is_(True))
+        .order_by(SubjectTask.position, SubjectTask.code)
+    )
+    return list(rows.scalars())
+
+
+async def get_subject_task_by_code(
+    db: AsyncSession, subject_code: str, task_code: str
+) -> SubjectTask | None:
+    subject = await get_subject_by_code(db, subject_code)
+    return (
+        await db.execute(
+            select(SubjectTask).where(
+                SubjectTask.subject_id == subject.id,
+                SubjectTask.code == task_code,
+                SubjectTask.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
 
 
 async def get_exam_by_code(db: AsyncSession, exam_code: str) -> ExamProfile:
@@ -77,6 +103,20 @@ async def list_blueprints(db: AsyncSession, task_family_id: uuid.UUID) -> list[T
         select(TaskBlueprint)
         .where(
             TaskBlueprint.task_family_id == task_family_id,
+            TaskBlueprint.is_active.is_(True),
+        )
+        .order_by(TaskBlueprint.code)
+    )
+    return list(rows.scalars())
+
+
+async def list_blueprints_for_subject_task(
+    db: AsyncSession, subject_task_id: uuid.UUID
+) -> list[TaskBlueprint]:
+    rows = await db.execute(
+        select(TaskBlueprint)
+        .where(
+            TaskBlueprint.subject_task_id == subject_task_id,
             TaskBlueprint.is_active.is_(True),
         )
         .order_by(TaskBlueprint.code)

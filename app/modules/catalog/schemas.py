@@ -35,6 +35,18 @@ class SkillOut(_Base):
     is_active: bool
 
 
+class SubjectTaskOut(_Base):
+    id: uuid.UUID
+    subject_id: uuid.UUID
+    code: str
+    name: str
+    position: int
+    answer_format: str
+    default_evaluator_code: str | None = None
+    description: str | None = None
+    is_active: bool
+
+
 class TaskFamilyOut(_Base):
     id: uuid.UUID
     code: str

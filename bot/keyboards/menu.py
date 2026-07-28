@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.callbacks.factories import CatalogCB, MenuCB, SessionCB
+from bot.callbacks.factories import AnalyticsCB, CatalogCB, MenuCB, SessionCB
 
 
 def main_menu() -> InlineKeyboardMarkup:
@@ -52,4 +52,40 @@ def submit_confirmation(session_id: str) -> InlineKeyboardMarkup:
     )
     kb.button(text="Cancel", callback_data=SessionCB(action="cancel", session_id=session_id))
     kb.adjust(1, 2)
+    return kb.as_markup()
+
+
+def analytics_actions_menu(diagnosis: dict | None = None) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    focus_items = (diagnosis or {}).get("focus_items") or []
+    item = focus_items[0] if focus_items else None
+    if item:
+        filters = item.get("filters") or {}
+        kind = ""
+        value = ""
+        if filters.get("criterion_code"):
+            kind = "criterion"
+            value = filters["criterion_code"]
+        elif filters.get("error_category"):
+            kind = "error"
+            value = filters["error_category"]
+        elif filters.get("task_code"):
+            kind = "task"
+            value = filters["task_code"]
+        kb.button(
+            text="Train this weakness",
+            callback_data=AnalyticsCB(action="train", kind=kind, value=value),
+        )
+        kb.button(
+            text="Show examples",
+            callback_data=AnalyticsCB(action="examples", kind=kind, value=value),
+        )
+        kb.button(
+            text="History",
+            callback_data=AnalyticsCB(action="history", kind=kind, value=value),
+        )
+    else:
+        kb.button(text="History", callback_data=MenuCB(action="history"))
+    kb.button(text="Back", callback_data=MenuCB(action="back"))
+    kb.adjust(1)
     return kb.as_markup()

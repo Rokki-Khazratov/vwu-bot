@@ -1,6 +1,7 @@
 from bot.rendering.escaping import escape
 from bot.rendering.renderer import (
     render_blocks,
+    render_diagnosis_examples,
     render_history,
     render_profile,
     render_statistics,
@@ -96,16 +97,29 @@ def test_render_history_includes_task_scores():
             "status": "completed",
             "score_earned": 12,
             "score_max": 20,
+            "top_errors": [{"category": "grammar", "count": 2}],
+            "weakest_criterion": {
+                "criterion_code": "accuracy",
+                "score": 3,
+                "max_score": 5,
+            },
         }
     ])
     assert "Task A" in html
     assert "12 / 20" in html
+    assert "grammar" in html
+    assert "accuracy" in html
 
 
 def test_render_profile_and_expanded_statistics():
     profile = render_profile({
         "me": {"telegram_id": 1, "status": "active", "display_name": "Rokki"},
         "overview": {"sessions_completed": 2, "average_percent": 70},
+        "diagnosis": {
+            "focus_items": [
+                {"title": "Критерий: accuracy", "severity": "high"}
+            ]
+        },
         "weaknesses": [{"criterion_code": "accuracy", "weakness_score": 44}],
         "history": [{"task_title": "Blog", "score_earned": 14, "score_max": 20}],
     })
@@ -120,6 +134,37 @@ def test_render_profile_and_expanded_statistics():
         "criteria": [{"criterion_code": "accuracy", "avg_score": 3, "max_score": 5}],
         "repeated_errors": [{"category": "grammar", "count": 2}],
         "weaknesses": [{"criterion_code": "accuracy", "weakness_score": 44}],
+        "diagnosis": {
+            "focus_items": [
+                {
+                    "title": "Критерий: accuracy",
+                    "severity": "high",
+                    "recommended_action": {"label": "Тренировать этот критерий"},
+                }
+            ]
+        },
     })
     assert "Проверено заданий" in stats
     assert "grammar" in stats
+    assert "Что тренировать сейчас" in stats
+
+    examples = render_diagnosis_examples(
+        {
+            "focus_items": [
+                {
+                    "title": "Повторяется ошибка: grammar",
+                    "filters": {"error_category": "grammar"},
+                    "sample_errors": [
+                        {
+                            "source_fragment": "he go",
+                            "corrected_fragment": "he goes",
+                            "criterion_code": "accuracy",
+                        }
+                    ],
+                }
+            ]
+        },
+        kind="error",
+        value="grammar",
+    )
+    assert "he goes" in examples

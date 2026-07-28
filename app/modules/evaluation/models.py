@@ -33,6 +33,7 @@ class Rubric(UUIDPrimaryKey, TimestampMixin, Base):
     code: Mapped[str] = mapped_column(String(64), index=True)
     name: Mapped[str] = mapped_column(String(255))
     version: Mapped[str] = mapped_column(String(32), default="v1")
+    subject_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject_tasks.id"))
     exam_profile_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exam_profiles.id"))
     task_family_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("task_families.id"))
     max_score: Mapped[float] = mapped_column(Numeric(6, 2))
@@ -132,6 +133,7 @@ class EvaluationProfile(UUIDPrimaryKey, Base):
 
     code: Mapped[str] = mapped_column(String(64), index=True)
     version: Mapped[str] = mapped_column(String(32), default="v1")
+    subject_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject_tasks.id"))
     task_family_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("task_families.id"))
     evaluator_code: Mapped[str] = mapped_column(String(64))
     rubric_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("rubrics.id"))

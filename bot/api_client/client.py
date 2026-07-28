@@ -87,6 +87,9 @@ class BackendClient:
     async def exams(self, tg_id: int, subject_code: str) -> list[dict]:
         return await self._get(f"/subjects/{subject_code}/exams", tg_id)
 
+    async def subject_tasks(self, tg_id: int, subject_code: str) -> list[dict]:
+        return await self._get(f"/subjects/{subject_code}/tasks", tg_id)
+
     async def skills(self, tg_id: int, exam_code: str) -> list[dict]:
         return await self._get(f"/exam-profiles/{exam_code}/skills", tg_id)
 
@@ -106,8 +109,8 @@ class BackendClient:
     async def session_result(self, tg_id: int, session_id: str) -> dict:
         return await self._get(f"/sessions/{session_id}/result", tg_id)
 
-    async def history(self, tg_id: int) -> list[dict]:
-        return await self._get("/sessions/history", tg_id)
+    async def history(self, tg_id: int, **params) -> list[dict]:
+        return await self._get("/sessions/history", tg_id, **params)
 
     # --- attempts (handles 200 sync + 202 async) ---
     async def submit_attempt(
@@ -131,6 +134,9 @@ class BackendClient:
 
     async def stats_weaknesses(self, tg_id: int) -> dict:
         return await self._get("/statistics/weaknesses", tg_id)
+
+    async def stats_diagnosis(self, tg_id: int) -> dict:
+        return await self._get("/statistics/diagnosis", tg_id)
 
     # --- dictionary / flashcards ---
     async def dictionary_lookup(self, tg_id: int, word: str, src: str, tgt: str) -> dict:

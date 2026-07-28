@@ -42,3 +42,11 @@ async def weaknesses(
     user: User = Depends(get_current_user),
 ) -> dict:
     return await service.weaknesses(db, user.id)
+
+
+@router.get("/diagnosis")
+async def diagnosis(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    return await service.diagnosis(db, user.id)

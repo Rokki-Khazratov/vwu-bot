@@ -71,6 +71,7 @@ async def create_guideline(
         version=payload.version,
         default_role=payload.role,
         subject_id=payload.subject_id,
+        subject_task_id=payload.subject_task_id,
         exam_profile_id=payload.exam_profile_id,
         skill_id=payload.skill_id,
         task_family_id=payload.task_family_id,

@@ -14,6 +14,7 @@ from app.modules.catalog.schemas import (
     ExamProfileOut,
     SkillOut,
     SubjectOut,
+    SubjectTaskOut,
     TaskBlueprintOut,
     TaskFamilyOut,
 )
@@ -36,6 +37,18 @@ async def get_exams(
     _: User = Depends(get_current_user),
 ) -> list[ExamProfileOut]:
     return [ExamProfileOut.model_validate(e) for e in await service.list_exams(db, subject_code)]
+
+
+@router.get("/subjects/{subject_code}/tasks", response_model=list[SubjectTaskOut])
+async def get_subject_tasks(
+    subject_code: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[SubjectTaskOut]:
+    return [
+        SubjectTaskOut.model_validate(t)
+        for t in await service.list_subject_tasks(db, subject_code)
+    ]
 
 
 @router.get("/exam-profiles/{exam_code}/skills", response_model=list[SkillOut])
@@ -64,4 +77,14 @@ async def get_blueprints(
     _: User = Depends(get_current_user),
 ) -> list[TaskBlueprintOut]:
     blueprints = await service.list_blueprints(db, task_family_id)
+    return [TaskBlueprintOut.model_validate(b) for b in blueprints]
+
+
+@router.get("/subject-tasks/{subject_task_id}/blueprints", response_model=list[TaskBlueprintOut])
+async def get_subject_task_blueprints(
+    subject_task_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[TaskBlueprintOut]:
+    blueprints = await service.list_blueprints_for_subject_task(db, subject_task_id)
     return [TaskBlueprintOut.model_validate(b) for b in blueprints]

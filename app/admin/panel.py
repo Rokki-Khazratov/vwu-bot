@@ -21,6 +21,7 @@ from app.modules.catalog.models import (
     Guideline,
     Skill,
     Subject,
+    SubjectTask,
     TaskBlueprint,
     TaskBlueprintGuideline,
     TaskFamily,
@@ -83,6 +84,18 @@ class ExamProfileAdmin(ModelView, model=ExamProfile):
 class SkillAdmin(ModelView, model=Skill):
     category = "Catalog"
     column_list = [Skill.code, Skill.name, Skill.position, Skill.is_active]
+
+
+class SubjectTaskAdmin(ModelView, model=SubjectTask):
+    category = "Catalog"
+    column_list = [
+        SubjectTask.code,
+        SubjectTask.name,
+        SubjectTask.position,
+        SubjectTask.answer_format,
+        SubjectTask.is_active,
+    ]
+    column_searchable_list = [SubjectTask.code, SubjectTask.name]
 
 
 class TaskFamilyAdmin(ModelView, model=TaskFamily):
@@ -178,7 +191,8 @@ class ErrorTaxonomyAdmin(ModelView, model=ErrorTaxonomy):
 # --- Tasks & attempts ---
 class TaskInstanceAdmin(ModelView, model=TaskInstance):
     category = "Content"
-    column_list = [TaskInstance.title, TaskInstance.difficulty, TaskInstance.status,
+    column_list = [TaskInstance.title, TaskInstance.difficulty, TaskInstance.source,
+                   TaskInstance.status,
                    TaskInstance.created_at]
     column_searchable_list = [TaskInstance.title]
 
@@ -255,8 +269,8 @@ class FlashcardReviewAdmin(ModelView, model=FlashcardReview):
 
 
 _VIEWS = [
-    SubjectAdmin, ExamProfileAdmin, SkillAdmin, TaskFamilyAdmin, TaskBlueprintAdmin,
-    GuidelineAdmin, TaskBlueprintGuidelineAdmin, TaskInstanceGuidelineAdmin,
+    SubjectAdmin, SubjectTaskAdmin, ExamProfileAdmin, SkillAdmin, TaskFamilyAdmin,
+    TaskBlueprintAdmin, GuidelineAdmin, TaskBlueprintGuidelineAdmin, TaskInstanceGuidelineAdmin,
     RubricAdmin, RubricCriterionAdmin, PerformanceBandAdmin,
     PenaltyRuleAdmin, DependencyRuleAdmin, EvaluationProfileAdmin, PromptTemplateAdmin,
     OutputSchemaAdmin, ErrorTaxonomyAdmin, TaskInstanceAdmin, TrainingSessionAdmin,

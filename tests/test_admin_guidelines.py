@@ -32,4 +32,6 @@ async def test_admin_upload_and_link_blueprint_guideline(client, db):
 
     listed = await client.get(f"/api/v1/admin/guidelines/blueprints/{seeded['blueprint'].id}")
     assert listed.status_code == 200
-    assert listed.json()["data"][0]["role"] == "evaluation"
+    listed_items = listed.json()["data"]
+    uploaded = next(item for item in listed_items if item["code"] == "grammar_rules")
+    assert uploaded["role"] == "evaluation"

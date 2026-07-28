@@ -23,6 +23,14 @@ task_family:
   default_evaluator_code: LLMWritingEvaluator
   description: Write a blog comment responding to a source post with three content points.
 
+subject_task:
+  code: writing
+  name: Writing
+  position: 1
+  answer_format: text
+  default_evaluator_code: LLMWritingEvaluator
+  description: Write exam-style English responses.
+
 blueprint:
   code: epe_b1_plus_blog_comment_v1
   version: v1

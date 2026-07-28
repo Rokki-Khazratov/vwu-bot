@@ -17,6 +17,7 @@ class TaskInstanceOut(BaseModel):
     answer_config: dict | None = None
     max_score: float | None = None
     recommended_minutes: int | None = None
+    source: str
     status: str
 
 
