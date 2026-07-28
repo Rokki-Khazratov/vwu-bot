@@ -116,3 +116,18 @@ async def get_attempt_result(
         response.status_code = 202
         return {"attempt_id": str(attempt.id), "status": attempt.status}
     return await build_attempt_payload(db, attempt, result)
+
+
+@router.get("/{attempt_id}/analysis")
+async def get_attempt_analysis(
+    attempt_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    attempt = await eval_repo.get_attempt(db, attempt_id)
+    if attempt is None or attempt.user_id != user.id:
+        raise AttemptNotFound()
+    result = await eval_repo.get_result_for_attempt(db, attempt.id)
+    if result is None:
+        return {"attempt_id": str(attempt.id), "status": attempt.status}
+    return await build_attempt_payload(db, attempt, result)

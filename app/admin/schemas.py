@@ -37,6 +37,7 @@ class GuidelineCreateRequest(BaseModel):
     body_markdown: str
     frontmatter: dict | None = None
     subject_id: uuid.UUID | None = None
+    subject_task_id: uuid.UUID | None = None
     exam_profile_id: uuid.UUID | None = None
     skill_id: uuid.UUID | None = None
     task_family_id: uuid.UUID | None = None

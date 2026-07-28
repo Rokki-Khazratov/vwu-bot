@@ -20,6 +20,8 @@ from app.admin.catalog_schemas import (
     SkillCreate,
     SkillUpdate,
     SubjectCreate,
+    SubjectTaskCreate,
+    SubjectTaskUpdate,
     SubjectUpdate,
     TaskFamilyCreate,
     TaskFamilyUpdate,
@@ -34,6 +36,7 @@ from app.modules.catalog.models import (
     ExamProfile,
     Skill,
     Subject,
+    SubjectTask,
     TaskBlueprint,
     TaskFamily,
 )
@@ -41,6 +44,7 @@ from app.modules.catalog.schemas import (
     ExamProfileOut,
     SkillOut,
     SubjectOut,
+    SubjectTaskOut,
     TaskBlueprintOut,
     TaskFamilyOut,
 )
@@ -158,6 +162,47 @@ async def update_skill(
 
 
 # --- Task families ---
+@router.post("/subject-tasks", response_model=SubjectTaskOut)
+async def create_subject_task(
+    payload: SubjectTaskCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> SubjectTaskOut:
+    subject = await catalog_service.get_subject_by_code(db, payload.subject_code)
+    data = payload.model_dump(exclude={"subject_code"})
+    subject_task = SubjectTask(subject_id=subject.id, **data)
+    db.add(subject_task)
+    await db.flush()
+    await record_audit(
+        db,
+        actor_user_id=admin.id,
+        action="subject_task_create",
+        entity_type="subject_task",
+        entity_id=str(subject_task.id),
+        after=data,
+    )
+    return SubjectTaskOut.model_validate(subject_task)
+
+
+@router.patch("/subject-tasks/{subject_task_id}", response_model=SubjectTaskOut)
+async def update_subject_task(
+    subject_task_id: uuid.UUID,
+    payload: SubjectTaskUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin),
+) -> SubjectTaskOut:
+    subject_task = await _get_or_404(db, SubjectTask, subject_task_id)
+    await _apply(
+        db,
+        subject_task,
+        payload.model_dump(exclude_none=True),
+        admin=admin,
+        action="subject_task_update",
+        entity_type="subject_task",
+    )
+    return SubjectTaskOut.model_validate(subject_task)
+
+
 @router.post("/task-families", response_model=TaskFamilyOut)
 async def create_task_family(
     payload: TaskFamilyCreate,
@@ -193,6 +238,8 @@ async def create_blueprint(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_admin),
 ) -> TaskBlueprintOut:
+    if payload.subject_task_id is None and payload.task_family_id is None:
+        raise TaskNotFound("subject_task_id is required.")
     blueprint = TaskBlueprint(**payload.model_dump())
     db.add(blueprint)
     await db.flush()

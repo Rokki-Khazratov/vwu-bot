@@ -56,6 +56,20 @@ class Skill(UUIDPrimaryKey, TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(default=True)
 
 
+class SubjectTask(UUIDPrimaryKey, TimestampMixin, Base):
+    __tablename__ = "subject_tasks"
+    __table_args__ = (UniqueConstraint("subject_id", "code", name="uq_subject_task_code"),)
+
+    subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"), index=True)
+    code: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    answer_format: Mapped[str] = mapped_column(String(32))  # text|choice|numeric|matching
+    default_evaluator_code: Mapped[str | None] = mapped_column(String(64))
+    description: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+
 class TaskFamily(UUIDPrimaryKey, TimestampMixin, Base):
     __tablename__ = "task_families"
     __table_args__ = (UniqueConstraint("skill_id", "code", name="uq_task_family_code"),)
@@ -73,7 +87,12 @@ class TaskBlueprint(UUIDPrimaryKey, TimestampMixin, Base):
     __tablename__ = "task_blueprints"
     __table_args__ = (UniqueConstraint("code", "version", name="uq_blueprint_code_version"),)
 
-    task_family_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("task_families.id"), index=True)
+    subject_task_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("subject_tasks.id"), index=True
+    )
+    task_family_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("task_families.id"), index=True
+    )
     code: Mapped[str] = mapped_column(String(64), index=True)
     version: Mapped[str] = mapped_column(String(32), default="v1")
     title: Mapped[str] = mapped_column(String(255))
@@ -102,6 +121,7 @@ class Guideline(UUIDPrimaryKey, Base):
     version: Mapped[str] = mapped_column(String(32), default="v1")
     default_role: Mapped[str] = mapped_column(String(32), default="notes")
     subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subjects.id"))
+    subject_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject_tasks.id"))
     exam_profile_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exam_profiles.id"))
     skill_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("skills.id"))
     task_family_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("task_families.id"))

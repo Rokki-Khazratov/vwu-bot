@@ -36,33 +36,62 @@ async def create_session(
     user_id: uuid.UUID,
     *,
     subject_code: str,
-    exam_profile_code: str,
-    skill_code: str,
-    task_family_code: str,
+    task_code: str | None = None,
+    blueprint_code: str | None = None,
+    exam_profile_code: str | None = None,
+    skill_code: str | None = None,
+    task_family_code: str | None = None,
     mode: str = "single",
     prefer_new_task: bool = True,
+    focus_criterion: str | None = None,
+    focus_error_category: str | None = None,
 ) -> tuple[TrainingSession, TaskInstance]:
     if mode != "single":
         raise ValidationError("Only 'single' mode is supported in this version.")
 
-    subject, exam, skill, family = await repo.resolve_catalog(
-        db, subject_code, exam_profile_code, skill_code, task_family_code
-    )
-    if skill is None or family is None:
-        raise ValidationError("Unknown skill or task family for this exam profile.")
-
-    task = await repo.pick_task_for_family(db, family.id, prefer_new=prefer_new_task)
-
-    session = TrainingSession(
-        user_id=user_id,
-        subject_id=subject.id,
-        exam_profile_id=exam.id,
-        skill_id=skill.id,
-        task_family_id=family.id,
-        mode=mode,
-        status="created",
-        score_max=task.max_score,
-    )
+    if task_code:
+        subject, subject_task = await repo.resolve_subject_task(db, subject_code, task_code)
+        task = await repo.pick_task_for_subject_task(
+            db,
+            subject_task.id,
+            prefer_new=prefer_new_task,
+            blueprint_code=blueprint_code,
+        )
+        session = TrainingSession(
+            user_id=user_id,
+            subject_id=subject.id,
+            subject_task_id=subject_task.id,
+            mode=mode,
+            status="created",
+            score_max=task.max_score,
+            meta={
+                "focus_criterion": focus_criterion,
+                "focus_error_category": focus_error_category,
+            },
+        )
+    else:
+        if not exam_profile_code or not skill_code or not task_family_code:
+            raise ValidationError("task_code is required.")
+        subject, exam, skill, family = await repo.resolve_catalog(
+            db, subject_code, exam_profile_code, skill_code, task_family_code
+        )
+        if skill is None or family is None:
+            raise ValidationError("Unknown skill or task family for this exam profile.")
+        task = await repo.pick_task_for_family(db, family.id, prefer_new=prefer_new_task)
+        session = TrainingSession(
+            user_id=user_id,
+            subject_id=subject.id,
+            exam_profile_id=exam.id,
+            skill_id=skill.id,
+            task_family_id=family.id,
+            mode=mode,
+            status="created",
+            score_max=task.max_score,
+            meta={
+                "focus_criterion": focus_criterion,
+                "focus_error_category": focus_error_category,
+            },
+        )
     db.add(session)
     await db.flush()
 

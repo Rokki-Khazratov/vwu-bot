@@ -188,9 +188,21 @@ def render_task(task: dict[str, Any]) -> str:
     content = task.get("content") or {}
     source = content.get("source_post") or {}
     points = task.get("content_points") or []
+    structured_items = content.get("items") or []
     rows = "".join(
         f"<li>{escape(point.get('instruction'))}</li>"
         for point in points
+    )
+    item_rows = "".join(
+        f"<li><b>{escape(item.get('id'))}</b>: {escape(item.get('prompt'))}"
+        + (
+            "<br>"
+            + escape(" / ".join(str(option) for option in item.get("options", [])))
+            if item.get("options")
+            else ""
+        )
+        + "</li>"
+        for item in structured_items
     )
     target = content.get("target_words")
     recommended = task.get("recommended_minutes")
@@ -207,7 +219,9 @@ def render_task(task: dict[str, Any]) -> str:
             f"<p><b>{escape(source.get('author'))}</b>: {escape(source.get('body'))}</p>"
             if source
             else "",
+            f"<p>{escape(content.get('text'))}</p>" if content.get("text") else "",
             f"<p>{escape(content.get('instruction'))}</p>" if content.get("instruction") else "",
+            f"<h4>Questions</h4><ul>{item_rows}</ul>" if item_rows else "",
             f"<h4>Content points</h4><ul>{rows}</ul>" if rows else "",
             f"<p>{escape(meta_text)}</p>" if meta_text else "",
         ]
@@ -224,6 +238,16 @@ def render_statistics(payload: dict[str, Any]) -> str:
         f"<p>Завершено сессий: {escape(sessions)}<br>Проверено заданий: {escape(tasks)}</p>",
         f"<p>Средний результат: {escape(avg) if avg is not None else '—'}%</p>",
     ]
+    diagnosis = payload.get("diagnosis") or {}
+    focus_items = diagnosis.get("focus_items") or []
+    if focus_items:
+        items = "".join(
+            f"<li><b>{escape(i.get('title'))}</b> "
+            f"({escape(i.get('severity'))})<br>"
+            f"{escape((i.get('recommended_action') or {}).get('label'))}</li>"
+            for i in focus_items[:5]
+        )
+        parts.append(f"<h4>Что тренировать сейчас</h4><ul>{items}</ul>")
     if payload.get("criteria"):
         rows = [
             [c.get("criterion_code", ""), c.get("avg_score", ""), c.get("max_score", "")]
@@ -250,6 +274,8 @@ def render_profile(payload: dict[str, Any]) -> str:
     overview = payload.get("overview", {})
     history = payload.get("history", [])
     weaknesses = payload.get("weaknesses", [])
+    diagnosis = payload.get("diagnosis") or {}
+    focus_items = diagnosis.get("focus_items") or []
     avg = overview.get("average_percent")
     name = me.get("display_name") or me.get("username") or me.get("telegram_id")
     parts = [
@@ -260,7 +286,13 @@ def render_profile(payload: dict[str, Any]) -> str:
             f"Средний результат: {escape(avg) if avg is not None else '—'}%</p>"
         ),
     ]
-    if weaknesses:
+    if focus_items:
+        items = "".join(
+            f"<li>{escape(i.get('title'))}: {escape(i.get('severity'))}</li>"
+            for i in focus_items[:3]
+        )
+        parts.append(f"<h4>Фокус</h4><ul>{items}</ul>")
+    elif weaknesses:
         items = "".join(
             f"<li>{escape(w.get('criterion_code'))}: {escape(w.get('weakness_score'))}</li>"
             for w in weaknesses[:3]
@@ -286,5 +318,50 @@ def render_history(items: list[dict[str, Any]]) -> str:
             score = f"{item['score_earned']} / {item['score_max']}"
         title = item.get("task_title") or item.get("mode") or "Session"
         status = item.get("status") or ""
-        lis.append(f"<li><b>{escape(title)}</b><br>{escape(status)} · {escape(score)}</li>")
+        weakest = item.get("weakest_criterion") or {}
+        top_errors = item.get("top_errors") or []
+        labels = []
+        if weakest.get("criterion_code"):
+            labels.append(
+                f"weak: {weakest['criterion_code']} "
+                f"{weakest.get('score')}/{weakest.get('max_score')}"
+            )
+        if top_errors:
+            labels.append(
+                "errors: " + ", ".join(
+                    f"{e.get('category')}×{e.get('count')}" for e in top_errors[:2]
+                )
+            )
+        extra = f"<br>{escape(' · '.join(labels))}" if labels else ""
+        lis.append(
+            f"<li><b>{escape(title)}</b><br>{escape(status)} · {escape(score)}{extra}</li>"
+        )
     return f"<h1>История</h1>\n\n<ul>{''.join(lis)}</ul>"
+
+
+def render_diagnosis_examples(diagnosis: dict[str, Any], *, kind: str, value: str) -> str:
+    items = diagnosis.get("focus_items") or []
+    matched = [
+        item for item in items
+        if (
+            (kind == "criterion" and item.get("filters", {}).get("criterion_code") == value)
+            or (kind == "error" and item.get("filters", {}).get("error_category") == value)
+            or (kind == "task" and item.get("filters", {}).get("task_code") == value)
+        )
+    ]
+    item = matched[0] if matched else (items[0] if items else None)
+    if not item:
+        return "<h1>Примеры</h1>\n\n<p>Пока нет сохранённых ошибок для примеров.</p>"
+    samples = item.get("sample_errors") or []
+    if not samples:
+        return (
+            f"<h1>{escape(item.get('title'))}</h1>\n\n"
+            "<p>По этому фокусу пока нет конкретных error examples.</p>"
+        )
+    lis = "".join(
+        f"<li><s>{escape(s.get('source_fragment'))}</s> → "
+        f"<b>{escape(s.get('corrected_fragment'))}</b><br>"
+        f"{escape(s.get('criterion_code'))}</li>"
+        for s in samples
+    )
+    return f"<h1>{escape(item.get('title'))}</h1>\n\n<ul>{lis}</ul>"

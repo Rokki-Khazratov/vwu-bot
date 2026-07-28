@@ -11,13 +11,17 @@ from app.modules.tasks.schemas import TaskInstanceOut
 class SessionOptions(BaseModel):
     difficulty: str | None = None
     prefer_new_task: bool = True
+    focus_criterion: str | None = None
+    focus_error_category: str | None = None
 
 
 class CreateSessionRequest(BaseModel):
     subject_code: str
-    exam_profile_code: str
-    skill_code: str
-    task_family_code: str
+    task_code: str | None = None
+    blueprint_code: str | None = None
+    exam_profile_code: str | None = None
+    skill_code: str | None = None
+    task_family_code: str | None = None
     mode: str = "single"
     options: SessionOptions = Field(default_factory=SessionOptions)
 
@@ -37,6 +41,7 @@ class SessionOut(BaseModel):
 
 class SessionHistoryOut(SessionOut):
     subject_code: str | None = None
+    task_code: str | None = None
     exam_profile_code: str | None = None
     skill_code: str | None = None
     task_family_code: str | None = None
@@ -44,6 +49,8 @@ class SessionHistoryOut(SessionOut):
     task_title: str | None = None
     attempt_id: uuid.UUID | None = None
     duration_seconds: int | None = None
+    top_errors: list[dict] = Field(default_factory=list)
+    weakest_criterion: dict | None = None
 
 
 class CreateSessionResponse(BaseModel):

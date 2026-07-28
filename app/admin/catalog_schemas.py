@@ -48,6 +48,25 @@ class SkillUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class SubjectTaskCreate(BaseModel):
+    subject_code: str
+    code: str
+    name: str
+    position: int = 0
+    answer_format: str
+    default_evaluator_code: str | None = None
+    description: str | None = None
+
+
+class SubjectTaskUpdate(BaseModel):
+    name: str | None = None
+    position: int | None = None
+    answer_format: str | None = None
+    default_evaluator_code: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
 class TaskFamilyCreate(BaseModel):
     skill_id: uuid.UUID
     code: str
@@ -66,7 +85,8 @@ class TaskFamilyUpdate(BaseModel):
 
 
 class BlueprintCreate(BaseModel):
-    task_family_id: uuid.UUID
+    subject_task_id: uuid.UUID | None = None
+    task_family_id: uuid.UUID | None = None
     code: str
     version: str = "v1"
     title: str

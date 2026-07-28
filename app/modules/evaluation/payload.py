@@ -14,6 +14,7 @@ from app.modules.evaluation.models import (
     ErrorEvent,
     EvaluationResult,
 )
+from app.modules.tasks.models import TaskInstance
 
 
 def _f(value: object) -> float | None:
@@ -37,11 +38,33 @@ async def build_attempt_payload(
     errors = (await db.execute(
         select(ErrorEvent).where(ErrorEvent.evaluation_result_id == result.id)
     )).scalars().all()
+    task = (
+        await db.execute(select(TaskInstance).where(TaskInstance.id == attempt.task_id))
+    ).scalar_one_or_none()
 
     return {
         "attempt_id": str(attempt.id),
+        "session_id": str(attempt.session_id) if attempt.session_id else None,
+        "task_id": str(attempt.task_id),
         "status": attempt.status,
         "evaluation_status": result.status,
+        "answer": {
+            "raw": attempt.raw_answer,
+            "normalized_text": attempt.normalized_answer,
+            "word_count": attempt.word_count,
+            "submitted_at": attempt.submitted_at.isoformat() if attempt.submitted_at else None,
+            "duration_seconds": attempt.duration_seconds,
+        },
+        "task": {
+            "id": str(task.id),
+            "title": task.title,
+            "content": task.content,
+            "content_points": task.content_points or [],
+            "max_score": _f(task.max_score),
+            "recommended_minutes": task.recommended_minutes,
+        }
+        if task is not None
+        else None,
         "score": {
             "raw": _f(result.raw_score),
             "penalty_total": _f(result.penalty_total),

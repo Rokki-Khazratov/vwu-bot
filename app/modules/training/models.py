@@ -19,7 +19,8 @@ class TrainingSession(UUIDPrimaryKey, Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"))
-    exam_profile_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("exam_profiles.id"))
+    subject_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject_tasks.id"))
+    exam_profile_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("exam_profiles.id"))
     skill_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("skills.id"))
     task_family_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("task_families.id"))
     mode: Mapped[str] = mapped_column(String(16), default="single")

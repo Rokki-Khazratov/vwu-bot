@@ -109,7 +109,8 @@ async def generate_tasks(
             answer_config={"type": "text"},
             max_score=blueprint.max_score,
             recommended_minutes=blueprint.recommended_minutes,
-            status="generated",
+            source="generated",
+            status="active",
             checksum=checksum,
         )
         if guidelines:

@@ -22,6 +22,12 @@ class SessionCB(CallbackData, prefix="v1sess"):
     session_id: str
 
 
+class AnalyticsCB(CallbackData, prefix="v1ana"):
+    action: str  # train | examples | history
+    kind: str = ""  # criterion | error | task
+    value: str = ""
+
+
 class FlashcardCB(CallbackData, prefix="v1fc"):
     action: str  # show | grade
     user_word_id: str

@@ -33,6 +33,7 @@ class TaskInstance(UUIDPrimaryKey, Base):
     hints: Mapped[list | None] = mapped_column(JSONColumn)
     max_score: Mapped[float | None] = mapped_column(Numeric(6, 2))
     recommended_minutes: Mapped[int | None] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(16), default="generated", index=True)
     status: Mapped[str] = mapped_column(String(16), default="generated", index=True)
     checksum: Mapped[str | None] = mapped_column(String(64), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

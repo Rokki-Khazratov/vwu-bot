@@ -12,7 +12,8 @@ async def test_generate_creates_task(db):
     )
     assert len(tasks) == 1
     task = tasks[0]
-    assert task.status == "generated"
+    assert task.source == "generated"
+    assert task.status == "active"
     assert len(task.content_points) == 3
     assert task.content["source_post"]["author"] == "Tom"
 

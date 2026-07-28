@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies.auth import get_current_user
@@ -35,11 +36,15 @@ async def create_session(
     session, task = await service.create_session(
         db, user.id,
         subject_code=payload.subject_code,
+        task_code=payload.task_code,
+        blueprint_code=payload.blueprint_code,
         exam_profile_code=payload.exam_profile_code,
         skill_code=payload.skill_code,
         task_family_code=payload.task_family_code,
         mode=payload.mode,
         prefer_new_task=payload.options.prefer_new_task,
+        focus_criterion=payload.options.focus_criterion,
+        focus_error_category=payload.options.focus_error_category,
     )
     return CreateSessionResponse(
         session=SessionOut.model_validate(session),
@@ -52,10 +57,35 @@ async def create_session(
 
 @router.get("/history", response_model=list[SessionHistoryOut])
 async def history(
+    subject_code: str | None = None,
+    task_code: str | None = None,
+    status: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    min_score: float | None = None,
+    max_score: float | None = None,
+    error_category: str | None = None,
+    criterion_code: str | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[SessionHistoryOut]:
-    history_rows = await repo.list_session_history(db, user.id)
+    history_rows = await repo.list_session_history(
+        db,
+        user.id,
+        subject_code=subject_code,
+        task_code=task_code,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+        min_score=min_score,
+        max_score=max_score,
+        error_category=error_category,
+        criterion_code=criterion_code,
+        limit=limit,
+        offset=offset,
+    )
     return [SessionHistoryOut.model_validate(s) for s in history_rows]
 
 
@@ -134,3 +164,12 @@ async def session_result(
     if result is None:
         raise SessionInvalidState("Result not ready.")
     return await build_attempt_payload(db, attempt, result)
+
+
+@router.get("/{session_id}/analysis")
+async def session_analysis(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    return await session_result(session_id, db, user)

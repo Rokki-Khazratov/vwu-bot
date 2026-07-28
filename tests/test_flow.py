@@ -2,12 +2,12 @@
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.content.seed import seed_all
 from app.main import app
 from app.modules.catalog.models import Guideline, TaskBlueprintGuideline
-from app.modules.evaluation.models import Attempt, EvaluationResult
+from app.modules.evaluation.models import Attempt, ErrorEvent, EvaluationResult
 from app.modules.llm.factory import get_llm_provider
 from tests._fakes import VALID_EVALUATION, FakeProvider
 
@@ -18,9 +18,7 @@ ANSWER_TEXT = "word " * 250
 async def _create_started_session(client) -> dict:
     resp = await client.post("/api/v1/sessions", json={
         "subject_code": "english",
-        "exam_profile_code": "epe_b1_plus",
-        "skill_code": "writing",
-        "task_family_code": "blog_comment",
+        "task_code": "writing",
         "mode": "single",
     })
     assert resp.status_code == 200, resp.text
@@ -55,6 +53,8 @@ async def test_full_writing_flow(client, db):
     assert payload["score"]["max"] == 20
     assert len(payload["content_points"]) == 3
     assert payload["semantic_blocks"][0]["type"] == "heading"
+    error_count = (await db.execute(select(func.count()).select_from(ErrorEvent))).scalar()
+    assert error_count >= 1
 
     # Session is finalised.
     hist = await client.get("/api/v1/sessions/history")
@@ -141,4 +141,55 @@ async def test_writing_evaluation_uses_linked_guidelines(client, db):
     result = (await db.execute(
         select(EvaluationResult).where(EvaluationResult.attempt_id == attempt.id)
     )).scalar_one()
-    assert result.provider_metadata["guidelines"][0]["code"] == "writing_eval_extra"
+    guideline_codes = [item["code"] for item in result.provider_metadata["guidelines"]]
+    assert "writing_eval_extra" in guideline_codes
+    assert "english_writing_evaluation" in guideline_codes
+
+
+async def test_grammar_flow_uses_answer_key(client, db):
+    await seed_all(db)
+    await db.commit()
+    sess = (await client.post("/api/v1/sessions", json={
+        "subject_code": "english",
+        "task_code": "grammar",
+        "mode": "single",
+    })).json()["data"]
+    sid, tid = sess["session"]["id"], sess["task"]["id"]
+    await client.post(f"/api/v1/sessions/{sid}/start")
+
+    resp = await client.post("/api/v1/attempts", json={
+        "session_id": sid,
+        "task_id": tid,
+        "answer": {"type": "text", "text": "1. had\n2. since\n3. in\n4. wrong\n5. helpful"},
+    })
+    assert resp.status_code == 200, resp.text
+    payload = resp.json()["data"]
+    assert payload["score"]["final"] == 8
+    assert payload["score"]["max"] == 10
+    assert payload["errors"][0]["category"] == "grammar"
+
+
+async def test_reading_flow_uses_answer_key(client, db):
+    await seed_all(db)
+    await db.commit()
+    sess = (await client.post("/api/v1/sessions", json={
+        "subject_code": "english",
+        "task_code": "reading",
+        "mode": "single",
+    })).json()["data"]
+    sid, tid = sess["session"]["id"], sess["task"]["id"]
+    await client.post(f"/api/v1/sessions/{sid}/start")
+
+    resp = await client.post("/api/v1/attempts", json={
+        "session_id": sid,
+        "task_id": tid,
+        "answer": {
+            "type": "text",
+            "text": "1. bike lanes\n2. shop owners\n3. true\n4. false",
+        },
+    })
+    assert resp.status_code == 200, resp.text
+    payload = resp.json()["data"]
+    assert payload["score"]["final"] == 8
+    assert payload["score"]["max"] == 8
+    assert payload["errors"] == []

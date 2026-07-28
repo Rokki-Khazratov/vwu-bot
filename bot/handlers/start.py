@@ -11,11 +11,18 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.api_client.client import BackendClient
 from bot.api_client.errors import BackendError
-from bot.callbacks.factories import CatalogCB, MenuCB, SessionCB
+from bot.callbacks.factories import AnalyticsCB, CatalogCB, MenuCB, SessionCB
 from bot.core.config import get_settings
 from bot.core.logging import log_event
-from bot.keyboards.menu import main_menu, subject_actions_menu, subjects_menu, submit_confirmation
+from bot.keyboards.menu import (
+    analytics_actions_menu,
+    main_menu,
+    subject_actions_menu,
+    subjects_menu,
+    submit_confirmation,
+)
 from bot.rendering.renderer import (
+    render_diagnosis_examples,
     render_history,
     render_profile,
     render_statistics,
@@ -97,12 +104,14 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
 async def cmd_stats(message: Message, backend: BackendClient, tg: TelegramClient) -> None:
     payload = await _stats_payload(message.from_user.id, backend)
     await _send_rich(message, tg, render_statistics(payload))
+    await message.answer("Действия:", reply_markup=analytics_actions_menu(payload.get("diagnosis")))
 
 
 @router.message(Command("profile"))
 async def cmd_profile(message: Message, backend: BackendClient, tg: TelegramClient) -> None:
     payload = await _profile_payload(message.from_user.id, backend)
     await _send_rich(message, tg, render_profile(payload))
+    await message.answer("Действия:", reply_markup=analytics_actions_menu(payload.get("diagnosis")))
 
 
 @router.message(Command("history"))
@@ -130,6 +139,9 @@ async def menu_train(query: CallbackQuery, state: FSMContext, backend: BackendCl
 async def menu_stats(query: CallbackQuery, backend: BackendClient, tg: TelegramClient) -> None:
     payload = await _stats_payload(query.from_user.id, backend)
     await _send_rich(query.message, tg, render_statistics(payload))
+    await query.message.answer(
+        "Действия:", reply_markup=analytics_actions_menu(payload.get("diagnosis"))
+    )
     await query.answer()
 
 
@@ -137,6 +149,9 @@ async def menu_stats(query: CallbackQuery, backend: BackendClient, tg: TelegramC
 async def menu_profile(query: CallbackQuery, backend: BackendClient, tg: TelegramClient) -> None:
     payload = await _profile_payload(query.from_user.id, backend)
     await _send_rich(query.message, tg, render_profile(payload))
+    await query.message.answer(
+        "Действия:", reply_markup=analytics_actions_menu(payload.get("diagnosis"))
+    )
     await query.answer()
 
 
@@ -158,15 +173,15 @@ async def menu_dictionary(query: CallbackQuery, state: FSMContext) -> None:
 async def choose_subject(
     query: CallbackQuery, callback_data: CatalogCB, state: FSMContext, backend: BackendClient
 ) -> None:
-    exams = await backend.exams(query.from_user.id, callback_data.value)
-    if not exams:
-        await query.message.answer("Для этого предмета пока нет активных экзаменов.")
+    tasks = await backend.subject_tasks(query.from_user.id, callback_data.value)
+    if not tasks:
+        await query.message.answer("Для этого предмета пока нет активных разделов.")
         await query.answer()
         return
-    exam = exams[0]
-    await state.update_data(subject_code=callback_data.value, exam_profile_code=exam["code"])
+    await state.update_data(subject_code=callback_data.value, subject_tasks=tasks)
     await state.set_state(Training.select_skill)
-    title = f"{exam.get('name') or callback_data.value}: выберите раздел"
+    subject_title = callback_data.value.replace("_", " ").title()
+    title = f"{subject_title}: выберите раздел"
     await query.message.edit_text(title, reply_markup=subject_actions_menu(callback_data.value))
     await query.answer()
 
@@ -179,62 +194,61 @@ async def subject_action(
     backend: BackendClient,
     tg: TelegramClient,
 ) -> None:
-    if callback_data.value != "writing":
-        data = await state.get_data()
-        exam_code = data.get("exam_profile_code")
-        skills = await backend.skills(query.from_user.id, exam_code) if exam_code else []
-        skill = next((s for s in skills if s.get("code") == callback_data.value), None)
-        if skill is None:
-            await query.message.answer("Этот раздел пока не настроен в backend.")
-            await query.answer()
-            return
-        families = await backend.task_families(query.from_user.id, skill["id"])
-        if not families:
-            await query.message.answer("Раздел найден, но task family ещё не настроена.")
-            await query.answer()
-            return
+    data = await state.get_data()
+    subject_code = data.get("subject_code", "english")
+    tasks = data.get("subject_tasks")
+    if tasks is None:
+        tasks = await backend.subject_tasks(query.from_user.id, subject_code)
+        await state.update_data(subject_tasks=tasks)
+    configured_task = next((t for t in tasks if t.get("code") == callback_data.value), None)
+    if configured_task is None:
+        await query.message.answer("Этот раздел пока не настроен в backend.")
+        await query.answer()
+        return
+
+    if callback_data.value == "full_mock":
         await query.message.answer(
             "Раздел уже есть в catalog, но Telegram flow для этого формата ещё не включён."
         )
         await query.answer()
         return
 
-    data = await state.get_data()
-    subject_code = data.get("subject_code", "english")
-    exam_code = data.get("exam_profile_code")
-    if not exam_code:
-        exams = await backend.exams(query.from_user.id, subject_code)
-        if not exams:
-            await query.message.answer("Экзаменационный профиль не найден.")
-            await query.answer()
-            return
-        exam_code = exams[0]["code"]
-
-    skills = await backend.skills(query.from_user.id, exam_code)
-    writing = next((s for s in skills if s.get("code") == "writing"), None)
-    if writing is None:
-        await query.message.answer("Writing пока не настроен для этого предмета.")
-        await query.answer()
-        return
-    families = await backend.task_families(query.from_user.id, writing["id"])
-    family = next(
-        (f for f in families if f.get("code") == "blog_comment"),
-        families[0] if families else None,
+    await _start_practice_session(
+        query,
+        state,
+        backend,
+        tg,
+        subject_code=subject_code,
+        task_code=callback_data.value,
+        focus_criterion=None,
+        focus_error_category=None,
     )
-    if family is None:
-        await query.message.answer("Нет доступных типов заданий Writing.")
-        await query.answer()
-        return
+    await query.answer()
 
+
+async def _start_practice_session(
+    query: CallbackQuery,
+    state: FSMContext,
+    backend: BackendClient,
+    tg: TelegramClient,
+    *,
+    subject_code: str,
+    task_code: str,
+    focus_criterion: str | None,
+    focus_error_category: str | None,
+) -> None:
+    options = {"prefer_new_task": False}
+    if focus_criterion:
+        options["focus_criterion"] = focus_criterion
+    if focus_error_category:
+        options["focus_error_category"] = focus_error_category
     created = await backend.create_session(
         query.from_user.id,
         {
             "subject_code": subject_code,
-            "exam_profile_code": exam_code,
-            "skill_code": "writing",
-            "task_family_code": family["code"],
+            "task_code": task_code,
             "mode": "single",
-            "options": {"prefer_new_task": False},
+            "options": options,
         },
     )
     session = created["session"]
@@ -243,18 +257,17 @@ async def subject_action(
     await state.set_state(Training.waiting_text_answer)
     await state.update_data(
         subject_code=subject_code,
-        exam_profile_code=exam_code,
-        skill_code="writing",
-        task_family_code=family["code"],
+        task_code=task_code,
         session_id=session["id"],
         task_id=task["id"],
+        focus_criterion=focus_criterion,
+        focus_error_category=focus_error_category,
         idempotency_key=str(uuid.uuid4()),
     )
     await _send_rich(query.message, tg, render_task(task))
     await query.message.answer(
         "Напишите ответ одним сообщением. Потом я покажу preview перед отправкой."
     )
-    await query.answer()
 
 
 @router.message(Training.waiting_text_answer)
@@ -327,6 +340,67 @@ async def final_submit(
     await state.clear()
 
 
+@router.callback_query(AnalyticsCB.filter(F.action == "train"))
+async def analytics_train(
+    query: CallbackQuery,
+    callback_data: AnalyticsCB,
+    state: FSMContext,
+    backend: BackendClient,
+    tg: TelegramClient,
+) -> None:
+    focus_criterion = callback_data.value if callback_data.kind == "criterion" else None
+    focus_error = callback_data.value if callback_data.kind == "error" else None
+    await state.clear()
+    await _start_practice_session(
+        query,
+        state,
+        backend,
+        tg,
+        subject_code="english",
+        task_code="writing",
+        focus_criterion=focus_criterion,
+        focus_error_category=focus_error,
+    )
+    await query.answer()
+
+
+@router.callback_query(AnalyticsCB.filter(F.action == "examples"))
+async def analytics_examples(
+    query: CallbackQuery,
+    callback_data: AnalyticsCB,
+    backend: BackendClient,
+    tg: TelegramClient,
+) -> None:
+    diagnosis = await backend.stats_diagnosis(query.from_user.id)
+    await _send_rich(
+        query.message,
+        tg,
+        render_diagnosis_examples(
+            diagnosis, kind=callback_data.kind, value=callback_data.value
+        ),
+    )
+    await query.answer()
+
+
+@router.callback_query(AnalyticsCB.filter(F.action == "history"))
+async def analytics_history(
+    query: CallbackQuery,
+    callback_data: AnalyticsCB,
+    backend: BackendClient,
+    tg: TelegramClient,
+) -> None:
+    params: dict[str, str] = {}
+    if callback_data.kind == "criterion":
+        params["criterion_code"] = callback_data.value
+    elif callback_data.kind == "error":
+        params["error_category"] = callback_data.value
+    elif callback_data.kind == "task":
+        params["task_code"] = callback_data.value
+    items = await backend.history(query.from_user.id, **params)
+    await _send_rich(query.message, tg, render_history(items))
+    await query.answer()
+
+
 async def _poll_attempt(tg_id: int, backend: BackendClient, attempt_id: str) -> dict:
     settings = get_settings()
     deadline = settings.eval_poll_timeout_seconds
@@ -348,11 +422,13 @@ async def _stats_payload(tg_id: int, backend: BackendClient) -> dict:
     criteria = await backend.stats_criteria(tg_id)
     errors = await backend.stats_errors(tg_id)
     weaknesses = await backend.stats_weaknesses(tg_id)
+    diagnosis = await backend.stats_diagnosis(tg_id)
     return {
         **overview,
         "criteria": criteria.get("criteria", []),
         "repeated_errors": errors.get("repeated", []),
         "weaknesses": weaknesses.get("weaknesses", []),
+        "diagnosis": diagnosis,
     }
 
 
@@ -364,6 +440,7 @@ async def _profile_payload(tg_id: int, backend: BackendClient) -> dict:
         "me": me,
         "overview": stats,
         "weaknesses": stats.get("weaknesses", []),
+        "diagnosis": stats.get("diagnosis", {}),
         "history": history,
     }
 
