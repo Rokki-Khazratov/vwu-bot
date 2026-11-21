@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VWU learning assistant</title><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&amp;family=Geist:wght@400;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><style>:root{--paper:#f5f5f5;--ink:#2d3142;--muted:#4f5d75;--soft:#5a6580}*{box-sizing:border-box}body{margin:0;padding:24px;background:var(--paper);color:var(--ink);font-family:Geist,Arial,sans-serif}main{width:100%;max-width:960px;min-width:0;margin:auto}.diagram-container{width:100%;overflow-x:auto}svg{width:100%;min-width:960px;display:block}.figure-title{font-family:"Instrument Serif",Georgia,serif;font-size:30px;fill:var(--ink)}.eyebrow-label,.arrow-label,.tag-label,.sub-label,.legend-label{font-family:"Geist Mono",Menlo,monospace;fill:var(--muted)}.eyebrow-label{font-size:8px;letter-spacing:1.4px}.summary-label{font-family:Geist,Arial,sans-serif;font-size:12px;fill:var(--muted)}.node-name{font-family:Geist,Arial,sans-serif;font-size:12px;font-weight:600;fill:var(--ink)}.sub-label{font-size:9px}.tag-label{font-size:8px;letter-spacing:.6px}.arrow-label{font-size:8px;letter-spacing:.3px}.legend-label{font-size:8px}p{font-size:13px;line-height:1.5;color:var(--muted)}@media print{.diagram-container{overflow-x:visible}svg{min-width:0}}</style></head><body><main><div class="diagram-container"><svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="architecture-title architecture-desc">
+<title id="architecture-title">VWU learning assistant</title>
+<desc id="architecture-desc">Telegram practice backed by persistent attempts, feedback and vocabulary.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4f5d75"/></marker><marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#2e5aa8"/></marker></defs>
+<rect width="960" height="600" fill="#f5f5f5"/>
+<text x="56" y="56" class="eyebrow-label">SOURCE OVERVIEW</text>
+<text x="56" y="100" class="figure-title">VWU learning assistant</text>
+<text x="56" y="132" class="summary-label">Telegram practice backed by persistent attempts, feedback and vocabulary.</text>
+<path data-role="connector" d="M 280 244 L 368 244" fill="none" stroke="#2e5aa8" stroke-width="1.5" marker-end="url(#arrow-link)"/>
+<path data-role="connector" d="M 592 244 L 680 244" fill="none" stroke="#4f5d75" stroke-width="1.5" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M 424 292 L 424 316 Q 424 324 416 324 L 176 324 Q 168 324 168 332 L 168 388" fill="none" stroke="#4f5d75" stroke-width="1.5" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M 480 292 L 480 388" fill="none" stroke="#4f5d75" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<path data-role="connector" d="M 536 292 L 536 332 Q 536 340 544 340 L 784 340 Q 792 340 792 348 L 792 388" fill="none" stroke="#2e5aa8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-link)"/>
+<path data-role="connector" d="M 592 436 L 680 436" fill="none" stroke="#2e5aa8" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow-link)"/>
+<rect data-role="label-mask" x="308" y="224" width="32" height="12" fill="#f5f5f5"/><text x="324" y="233" class="arrow-label" text-anchor="middle">HTTP</text>
+<rect data-role="label-mask" x="622" y="224" width="28" height="12" fill="#f5f5f5"/><text x="636" y="233" class="arrow-label" text-anchor="middle">SQL</text>
+<rect data-role="label-mask" x="167" y="304" width="42" height="12" fill="#f5f5f5"/><text x="188" y="313" class="arrow-label" text-anchor="middle">LOOKUP</text>
+<rect data-role="label-mask" x="488" y="334" width="37" height="12" fill="#f5f5f5"/><text x="506.5" y="343" class="arrow-label" text-anchor="middle">ASYNC</text>
+<rect data-role="label-mask" x="640.5" y="320" width="47" height="12" fill="#f5f5f5"/><text x="664" y="329" class="arrow-label" text-anchor="middle">SYNC AI</text>
+<rect data-role="label-mask" x="607.5" y="416" width="57" height="12" fill="#f5f5f5"/><text x="636" y="425" class="arrow-label" text-anchor="middle">WORKER AI</text>
+<g data-node-id="a"><rect data-role="bounds" x="56" y="196" width="224" height="96" rx="6" fill="#f5f5f5"/>
+<rect x="56" y="196" width="224" height="96" rx="6" fill="#ffffff" stroke="#4f5d75" stroke-width="1"/>
+<text x="72" y="224" class="tag-label" fill="#4f5d75">CLIENT</text>
+<text x="72" y="248" class="node-name">Telegram client</text>
+<text x="72" y="268" class="sub-label">aiogram / HTTP client</text>
+</g>
+<g data-node-id="b"><rect data-role="bounds" x="368" y="196" width="224" height="96" rx="6" fill="#f5f5f5"/>
+<rect x="368" y="196" width="224" height="96" rx="6" fill="#f1e7e3" stroke="#bf4520" stroke-width="1.8"/>
+<text x="384" y="224" class="tag-label" fill="#bf4520">CORE</text>
+<text x="384" y="248" class="node-name">Learning API</text>
+<text x="384" y="268" class="sub-label">FastAPI / access rules</text>
+</g>
+<g data-node-id="c"><rect data-role="bounds" x="680" y="196" width="224" height="96" rx="6" fill="#f5f5f5"/>
+<path d="M 680 204 C 680 194 904 194 904 204 V 284 C 904 294 680 294 680 284 Z" fill="#ececec" stroke="#4f5d75"/><path d="M 680 204 C 680 214 904 214 904 204" fill="none" stroke="#4f5d75"/>
+<text x="696" y="224" class="tag-label" fill="#4f5d75">DATA</text>
+<text x="696" y="248" class="node-name">Learning records</text>
+<text x="696" y="268" class="sub-label">PostgreSQL / SQLAlchemy</text>
+</g>
+<g data-node-id="d"><rect data-role="bounds" x="56" y="388" width="224" height="96" rx="6" fill="#f5f5f5"/>
+<rect x="56" y="388" width="224" height="96" rx="6" fill="#f5f5f5" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="72" y="416" class="tag-label" fill="#4f5d75">EXTERNAL</text>
+<text x="72" y="440" class="node-name">Dictionary providers</text>
+<text x="72" y="460" class="sub-label">PONS / Free Dictionary</text>
+</g>
+<g data-node-id="e"><rect data-role="bounds" x="368" y="388" width="224" height="96" rx="6" fill="#f5f5f5"/>
+<rect x="368" y="388" width="224" height="96" rx="6" fill="#f5f5f5" stroke="#4f5d75" stroke-width="1"/>
+<text x="384" y="416" class="tag-label" fill="#4f5d75">COMPONENT</text>
+<text x="384" y="440" class="node-name">Background work</text>
+<text x="384" y="460" class="sub-label">Celery / Redis</text>
+</g>
+<g data-node-id="f"><rect data-role="bounds" x="680" y="388" width="224" height="96" rx="6" fill="#f5f5f5"/>
+<rect x="680" y="388" width="224" height="96" rx="6" fill="#f5f5f5" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5 4"/>
+<text x="696" y="416" class="tag-label" fill="#4f5d75">EXTERNAL</text>
+<text x="696" y="440" class="node-name">Language-model provider</text>
+<text x="696" y="460" class="sub-label">Gemini / configured access</text>
+</g>
+<line x1="56" y1="544" x2="904" y2="544" stroke="#bfc0c0"/>
+<text x="56" y="568" class="legend-label">Solid: primary flow</text>
+<text x="280" y="568" class="legend-label">Dashed: optional or async</text>
+<text x="568" y="568" class="legend-label">Data shapes: persisted or in-memory state</text>
+<text x="56" y="588" class="legend-label">CLIENT: interface / CORE: main application / COMPONENT: supporting module / EXTERNAL: outside integration</text>
+</svg></div><p>Async generation and evaluation are configuration options; the bot renders API results.</p></main></body></html>
